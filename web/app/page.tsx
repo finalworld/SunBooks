@@ -74,7 +74,8 @@ export default function Home() {
     if ("formats" in change || "copies" in change) updated.owned = Boolean(updated.formats?.length || updated.copies?.length);
     const clean = JSON.parse(JSON.stringify(updated)) as Book;
     await setDoc(doc(db, "users", user.uid, "books", book.id), clean);
-    setLibrary(current => [clean, ...current.filter(item => item.id !== book.id)]); setSelected(clean);
+    setLibrary(current => [clean, ...current.filter(item => item.id !== book.id)]);
+    setSelected(current => current?.id === book.id ? clean : current);
   }
 
   async function removeBook(book: Book) {

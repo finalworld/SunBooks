@@ -3,6 +3,7 @@ import { BookOpen, Check, Heart, Plus, Star, Trash2, X } from "lucide-react";
 import { formatLabels, readingStatusLabels, type Book, type BookCopy, type BookFormat, type ReadingStatus } from "../types";
 import { getBookDetails } from "../lib/books";
 import { useI18n } from "../i18n";
+import { MediaBadges } from "./BookIndicators";
 
 type Props = {
   book: Book; saved?: Book; onClose: () => void;
@@ -77,8 +78,11 @@ export function BookDetails({ book, saved, onClose, onPatch, onRemove }: Props) 
     <section className="book-modal">
       <div className="autosave-status">{saving ? <><span className="mini-loader" />{t("saving")}</> : savedFlash ? <><Check />{t("saved")}</> : null}</div>
       <button className="modal-close" onClick={onClose} aria-label={t("close")}><X /></button>
-      <div className="detail-hero"><div className="detail-cover">{details.cover ? <img src={details.cover} alt={`${t("coverOf")} ${details.title}`} /> : <BookOpen />}</div><div><p>{details.year || t("yearMissing")}</p><h1>{details.title}</h1><h2>{details.authors.join(", ")}</h2></div></div>
+      <div className="detail-hero"><div className="detail-cover">{details.cover ? <img src={details.cover} alt={`${t("coverOf")} ${details.title}`} /> : <BookOpen />}</div><div className="detail-title-copy"><button className={`detail-favorite ${draft.favorite ? "active" : ""}`} onClick={() => patch({ favorite:!draft.favorite })} aria-label={t("favorite")}><Heart fill={draft.favorite ? "currentColor" : "none"}/></button><p>{details.year || t("yearMissing")}</p><h1>{details.title}</h1><h2>{details.authors.join(", ")}</h2><MediaBadges book={draft}/></div></div>
       <div className="facts">{details.pages && <span><strong>{details.pages}</strong>{t("pages")}</span>}{details.isbn && <span><strong>{details.isbn}</strong>{t("isbn")}</span>}{details.languages?.[0] && <span><strong>{details.languages[0].toUpperCase()}</strong>{t("languageShort")}</span>}{details.addedAt&&<span><strong>{new Date(details.addedAt).toLocaleDateString()}</strong>{t("added")}</span>}</div>
+
+      <section className="detail-section description-section"><h3>{t("about")}</h3><p>{details.description || t("noDescription")}</p></section>
+      <section className="detail-section categories-section"><h3>{t("categories")}</h3>{details.genres?.length ? <div className="category-chips">{details.genres.map(genre => <span key={genre}>{genre}</span>)}</div> : <p>{t("noCategories")}</p>}</section>
 
       <section className="detail-section status-section"><h3>{t("readingStatus")}</h3><p>{t("statusHelp")}</p><div className="status-options">{(Object.keys(readingStatusLabels) as ReadingStatus[]).map(status => <button className={draft.readingStatus === status ? "selected" : ""} onClick={() => chooseStatus(status)} key={status}>{draft.readingStatus === status && <Check />}{statusLabels[status]}</button>)}</div></section>
 
@@ -94,10 +98,6 @@ export function BookDetails({ book, saved, onClose, onPatch, onRemove }: Props) 
 
       <section className="detail-section tags-section"><h3>{t("tags")}</h3><div className="tag-input"><input value={newTag} onChange={event => setNewTag(event.target.value)} onKeyDown={event => { if (event.key === "Enter") addTag(); }} /><button onClick={addTag}><Plus />{t("addTag")}</button></div><div className="category-chips">{(draft.tags || []).map(tag => <button key={tag} onClick={() => patch({ tags:(draft.tags || []).filter(item => item !== tag) })}>{tag}<X /></button>)}</div></section>
 
-      <section className="detail-section description-section"><h3>{t("about")}</h3><p>{details.description || t("noDescription")}</p></section>
-      <section className="detail-section categories-section"><h3>{t("categories")}</h3>{details.genres?.length ? <div className="category-chips">{details.genres.map(genre => <span key={genre}>{genre}</span>)}</div> : <p>{t("noCategories")}</p>}</section>
-
-      <button className={`favorite-wide ${draft.favorite ? "active" : ""}`} onClick={() => patch({ favorite:!draft.favorite })}><Heart fill={draft.favorite ? "currentColor" : "none"} /> {draft.favorite ? t("favorite") : t("addFavorite")}</button>
       <button className="danger-wide" onClick={() => setConfirmRemove(true)}><Trash2 />{t("remove")}</button>
       {confirmRemove && <div className="confirm-box"><strong>{t("removeBook")}</strong><p>{t("removeConfirm")}</p><div><button onClick={() => setConfirmRemove(false)}>{t("cancel")}</button><button className="danger" onClick={() => onRemove(details)}>{t("confirmRemove")}</button></div></div>}
     </section>
