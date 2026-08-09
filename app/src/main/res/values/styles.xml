@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.SunBooks" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#B88A3B</item>
+        <item name="android:navigationBarColor">#EFE5D5</item>
+        <item name="android:statusBarColor">#EFE5D5</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>
