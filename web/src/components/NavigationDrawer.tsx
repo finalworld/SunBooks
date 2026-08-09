@@ -1,5 +1,5 @@
 import type{User}from"firebase/auth";import{BarChart3,BookOpen,Library,Settings,X}from"lucide-react";import type{View}from"../types";import{useI18n}from"../i18n";
 
-const APP_VERSION="0.3.6";
+const APP_VERSION="0.3.7";
 
 export function NavigationDrawer({user,count,onClose,onNavigate,onSignOut}:{user:User;count:number;onClose:()=>void;onNavigate:(view:View)=>void;onSignOut:()=>void}){const{t}=useI18n();return <><button className="scrim" onClick={onClose} aria-label={t("close")}/><aside className="drawer parchment-drawer"><div className="drawer-brand"><h1>SunBooks</h1><button onClick={onClose} aria-label={t("close")}><X/></button></div><div className="drawer-scroll"><nav><button onClick={()=>onNavigate("home")}><BookOpen/>{t("home")}</button><button onClick={()=>onNavigate("library")}><Library/>{t("library")}<span>{count}</span></button><button onClick={()=>onNavigate("stats")}><BarChart3/>{t("statistics")}</button><button onClick={()=>onNavigate("settings")}><Settings/>{t("settings")}</button></nav></div><div className="drawer-footer"><div className="drawer-user"><img src={user.photoURL||"/sunbooks-logo.png"} alt=""/><div><strong>{user.displayName}</strong><span>{user.email}</span></div></div><button className="signout" onClick={onSignOut}>{t("signOut")}</button><small>SunBooks v{APP_VERSION}</small></div></aside></>}
