@@ -13,6 +13,7 @@ export type Book = {
   year?: number;
   pages?: number;
   genres?: string[];
+  description?: string;
   languages?: string[];
   formats?: BookFormat[];
   favorite?: boolean;

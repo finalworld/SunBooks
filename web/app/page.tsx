@@ -3,7 +3,7 @@ import { collection, deleteDoc, doc, getDocs, setDoc } from "firebase/firestore"
 import { onAuthStateChanged, signInWithPopup, signOut, type User } from "firebase/auth";
 import { auth, db, googleProvider } from "../src/lib/firebase";
 import { findBooks } from "../src/lib/books";
-import type { Book, BookFormat, ScanMode, Theme, View } from "../src/types";
+import type { Book, BookFormat, ReadingStatus, ScanMode, Theme, View } from "../src/types";
 import { LoginPage } from "../src/components/LoginPage";
 import { SearchHeader } from "../src/components/SearchHeader";
 import { HomeHero } from "../src/components/HomeHero";
@@ -75,6 +75,14 @@ export default function Home() {
     await saveBook(saved, saved.formats || ["physical"], !saved.favorite);
   }
 
+  async function changeReadingStatus(book: Book, readingStatus?: ReadingStatus) {
+    if (!user) return;
+    const updated = { ...book, readingStatus };
+    await setDoc(doc(db, "users", user.uid, "books", book.id), updated);
+    setLibrary(current => current.map(item => item.id === book.id ? updated : item));
+    setSelected(updated);
+  }
+
   async function login() {
     setAuthError("");
     try { await signInWithPopup(auth, googleProvider); }
@@ -104,7 +112,7 @@ export default function Home() {
     {view === "settings" && <SettingsPage theme={theme} setTheme={setTheme} user={user} />}
     {(view === "library" || showingContent) && view !== "settings" && <BookList view={view} books={visibleBooks} library={library} loading={loading} error={error} total={total} page={page} onPage={searchBooks} onSelect={setSelected} onFavorite={toggleFavorite} />}
     {menuOpen && <NavigationDrawer user={user} count={library.length} onClose={() => setMenuOpen(false)} onNavigate={navigate} onSignOut={() => signOut(auth)} />}
-    {selected && <BookDetails book={selected} saved={owned(selected.id)} onClose={() => setSelected(null)} onSave={saveBook} onRemove={removeBook} />}
+    {selected && <BookDetails book={selected} saved={owned(selected.id)} onClose={() => setSelected(null)} onSave={saveBook} onStatusChange={changeReadingStatus} onRemove={removeBook} />}
     {scanMode && <BookScanner mode={scanMode} onCode={scannedCode} onClose={closeScanner} onError={scannerError} />}
   </main>;
 }
