@@ -24,5 +24,5 @@ export function RatingIndicator({ rating }: { rating?: number | "bajs" }) {
   if (rating === undefined) return null;
   if (rating === "bajs") return <span className="rating-indicator poop" title="BAJS">💩</span>;
   const percent = Math.max(0, Math.min(100, (rating / 5) * 100));
-  return <span className="rating-indicator" title={`${rating.toFixed(2)} / 5`}><Star className="rating-star-empty" /><span style={{ width: `${percent}%` }}><Star className="rating-star-fill" fill="currentColor" /></span></span>;
+  return <span className="rating-indicator" title={`${rating.toFixed(2)} / 5`}><span className="rating-star"><Star className="rating-star-empty" /><span style={{ width: `${percent}%` }}><Star className="rating-star-fill" fill="currentColor" /></span></span><b>{rating.toString()}</b></span>;
 }
