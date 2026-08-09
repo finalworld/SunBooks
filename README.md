@@ -1,24 +1,31 @@
 # SunBooks
 
-Androidapp för att söka efter böcker och hålla ordning på ett personligt bibliotek.
+SunBooks är ett personligt bibliotek för att söka, skanna och hålla ordning på böcker.
 
-## Version 0.1.1
+## Webbversion
 
-- fungerande sökning via Open Library utan API-nyckel
-- sökresultat med omslag, titel och författare
-- ISBN-streckkodsskanning samt OCR för ISBN/ASIN-text
-- bokdetaljer och permanent lokalt sparade val för fysisk bok, e-bok och ljudbok
-- Mitt bibliotek, Statistik och Inställningar
-- ljust beige och mörkgrått tema
-- 20 sökresultat per sida
-- responsiv startsida för större systemtext
+Den publicerade webbappen finns på [sunbooks-fe49c.web.app](https://sunbooks-fe49c.web.app).
 
-## Bygga
+- Google-inloggning
+- privat bibliotek per användare i Firebase Firestore
+- sökning via Open Library med 20 resultat per sida
+- ISBN- och streckkodsskanning med mobilens kamera
+- bokdetaljer och flera ägda format: fysisk bok, e-bok och ljudbok
+- favoriter, Mitt bibliotek samt ljust, mörkt och systemstyrt tema
+- responsiv layout för dator, Android och iPhone
 
-Öppna projektet i Android Studio eller kör:
+Bygg webbversionen med:
+
+```powershell
+cd web
+pnpm install
+pnpm test
+```
+
+## Android
+
+Den tidigare Android-appen finns kvar i samma projekt och har inte tagits bort. Bygg den med Android Studio eller:
 
 ```powershell
 .\gradlew.bat assembleDebug
 ```
-
-Firebase/Google-inloggning aktiveras i ett senare steg när projektets `google-services.json` finns.

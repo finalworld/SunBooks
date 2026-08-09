@@ -1,6 +1,8 @@
 .gradle/
 .idea/
 local.properties
+.firebase/
+*.tsbuildinfo
 **/build/
 work/
 *.iml
