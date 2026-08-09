@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { collection, deleteDoc, doc, getDocs, setDoc } from "firebase/firestore";
-import { onAuthStateChanged, signInWithPopup, signOut, type User } from "firebase/auth";
+import { getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut, type User } from "firebase/auth";
 import { auth, db, googleProvider } from "../src/lib/firebase";
 import { findBooks } from "../src/lib/books";
 import type { Book, BookFormat, ReadingStatus, ScanMode, Theme, View } from "../src/types";
@@ -32,6 +32,9 @@ export default function Home() {
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem("sunbooks-theme") as Theme) || "system");
 
   useEffect(() => onAuthStateChanged(auth, current => { setUser(current); setAuthReady(true); }), []);
+  useEffect(() => {
+    getRedirectResult(auth).catch(() => setAuthError("Google-inloggningen kunde inte slutföras. Försök igen eller öppna SunBooks direkt i Safari."));
+  }, []);
   useEffect(() => { document.documentElement.dataset.theme = theme; localStorage.setItem("sunbooks-theme", theme); }, [theme]);
   useEffect(() => {
     if (!user) { setLibrary([]); return; }
@@ -85,7 +88,11 @@ export default function Home() {
 
   async function login() {
     setAuthError("");
-    try { await signInWithPopup(auth, googleProvider); }
+    try {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      if (isIOS) await signInWithRedirect(auth, googleProvider);
+      else await signInWithPopup(auth, googleProvider);
+    }
     catch { setAuthError("Inloggningen avbröts eller kunde inte öppnas. Försök igen i Safari om du använder en inbyggd webbläsare."); }
   }
 
