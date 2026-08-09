@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen, Camera, Check, ChevronLeft, ChevronRight, Heart, Library,
-  Menu, Monitor, Moon, Search, Settings, Star, Sun, X
+  Menu, Monitor, Moon, ScanText, Search, Settings, Star, Sun, X
 } from "lucide-react";
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, type User } from "firebase/auth";
@@ -65,8 +65,12 @@ export default function Home() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [scanner, setScanner] = useState(false);
+  const [scanMode, setScanMode] = useState<"barcode" | "text">("barcode");
+  const [readingText, setReadingText] = useState(false);
+  const [scanMessage, setScanMessage] = useState("");
   const [theme, setTheme] = useState<Theme>(() => typeof window === "undefined" ? "system" : (localStorage.getItem("sunbooks-theme") as Theme) || "system");
   const videoRef = useRef<HTMLVideoElement>(null);
+  const barcodeControlsRef = useRef<{ stop: () => void } | null>(null);
 
   useEffect(() => onAuthStateChanged(auth, u => { setUser(u); setAuthReady(true); }), []);
   useEffect(() => {
@@ -121,7 +125,7 @@ export default function Home() {
   }
 
   async function startScanner() {
-    setScanner(true); setAdvanced(false); setError("");
+    setScanMode("barcode"); setScanner(true); setAdvanced(false); setError(""); setScanMessage("");
     setTimeout(async () => {
       try {
         const { BrowserMultiFormatReader } = await import("@zxing/browser");
@@ -132,8 +136,49 @@ export default function Home() {
             if (navigator.vibrate) navigator.vibrate(80);
           }
         });
+        barcodeControlsRef.current = controls;
       } catch { setScanner(false); setError("Kameran kunde inte öppnas. Kontrollera kamerabehörigheten eller skriv ISBN-numret i sökfältet."); }
     }, 50);
+  }
+
+  async function startTextScanner() {
+    setScanMode("text"); setScanner(true); setAdvanced(false); setError(""); setScanMessage("");
+    setTimeout(async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+        if (!videoRef.current) return;
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      } catch { closeScanner(); setError("Kameran kunde inte öppnas. Kontrollera kamerabehörigheten."); }
+    }, 50);
+  }
+
+  function closeScanner() {
+    barcodeControlsRef.current?.stop(); barcodeControlsRef.current = null;
+    const stream = videoRef.current?.srcObject as MediaStream | null;
+    stream?.getTracks().forEach(track => track.stop());
+    if (videoRef.current) videoRef.current.srcObject = null;
+    setScanner(false); setReadingText(false);
+  }
+
+  async function readCodeFromScreen() {
+    const video = videoRef.current;
+    if (!video?.videoWidth) return;
+    setReadingText(true);
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+      canvas.getContext("2d")!.drawImage(video, 0, 0);
+      const { recognize } = await import("tesseract.js");
+      const result = await recognize(canvas, "eng");
+      const compact = result.data.text.toUpperCase().replace(/[–—]/g, "-");
+      const asin = compact.match(/\b(?:B0[A-Z0-9]{8}|[A-Z0-9]{10})\b/)?.[0];
+      const isbnCandidate = compact.match(/(?:97[89][\s-]*)?(?:\d[\s-]*){9}[\dX]/)?.[0]?.replace(/[\s-]/g, "");
+      const code = asin || isbnCandidate;
+      if (!code) { setScanMessage("Ingen kod hittades. Håll kameran närmare texten och försök igen."); setReadingText(false); return; }
+      closeScanner(); setQuery(code); searchBooks(1, code);
+      if (navigator.vibrate) navigator.vibrate(80);
+    } catch { setScanMessage("Texten kunde inte läsas. Försök igen med bättre ljus."); setReadingText(false); }
   }
 
   if (!authReady) return <main className="center"><div className="loader" /></main>;
@@ -153,6 +198,7 @@ export default function Home() {
       <div className="advanced-row"><button onClick={() => setAdvanced(v => !v)}>Avancerat <span>{advanced ? "−" : "+"}</span></button></div>
       {advanced && <section className="advanced-panel">
         <button className="scan-card" onClick={startScanner}><Camera /><span><strong>Skanna en bok</strong><small>ISBN eller streckkod med kameran</small></span><ChevronRight /></button>
+        <button className="scan-card" onClick={startTextScanner}><ScanText /><span><strong>Skanna ISBN/ASIN som text</strong><small>Läs av koden från en läsplatta eller skärm</small></span><ChevronRight /></button>
         <p>Du kan också skriva ISBN eller ASIN direkt i sökfältet.</p>
       </section>}
 
@@ -190,7 +236,7 @@ export default function Home() {
       </aside></>}
 
       {selected && <BookDetails book={selected} saved={owned(selected.id)} onClose={() => setSelected(null)} onSave={saveBook} onRemove={removeBook} />}
-      {scanner && <div className="scanner"><button onClick={() => setScanner(false)} aria-label="Stäng kamera"><X/></button><video ref={videoRef} muted playsInline/><div className="scan-frame"/><div className="scan-copy"><strong>Rikta kameran mot streckkoden</strong><span>Skanningen sker automatiskt</span></div></div>}
+      {scanner && <div className={`scanner ${scanMode === "text" ? "text-scanner" : ""}`}><button onClick={closeScanner} aria-label="Stäng kamera"><X/></button><video ref={videoRef} muted playsInline/><div className="scan-frame"/><div className="scan-copy"><strong>{scanMode === "text" ? "Placera ASIN- eller ISBN-texten i rutan" : "Rikta kameran mot streckkoden"}</strong><span>{scanMessage || (scanMode === "text" ? "Håll telefonen stilla och tryck på knappen" : "Skanningen sker automatiskt")}</span>{scanMode === "text" && <button className="capture-text" disabled={readingText} onClick={readCodeFromScreen}>{readingText ? <><span className="mini-loader"/> Läser text…</> : <><ScanText/> Läs av texten</>}</button>}</div></div>}
     </main>
   );
 }
