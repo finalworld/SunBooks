@@ -18,6 +18,7 @@ export type Book = {
   formats?: BookFormat[];
   favorite?: boolean;
   readingStatus?: ReadingStatus;
+  completedAt?: string;
   addedAt?: string;
 };
 

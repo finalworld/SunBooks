@@ -26,6 +26,13 @@ export function BookDetails({ book, saved, onClose, onSave, onStatusChange, onRe
     if (saved) onStatusChange({ ...saved, ...onlineDetails }, next);
   }
 
+  function saveChanges() {
+    const updated: Book = { ...detailedBook };
+    if (readingStatus) updated.readingStatus = readingStatus;
+    else delete updated.readingStatus;
+    onSave(updated, formats, favorite);
+  }
+
   return <div className="modal-wrap">
     <button className="scrim" onClick={onClose} aria-label="Stäng" />
     <section className="book-modal">
@@ -53,7 +60,7 @@ export function BookDetails({ book, saved, onClose, onSave, onStatusChange, onRe
         {(Object.keys(formatLabels) as BookFormat[]).map(format => <button className={formats.includes(format) ? "checked" : ""} onClick={() => toggle(format)} key={format}><span>{formats.includes(format) && <Check />}</span>{formatLabels[format]}</button>)}
       </div>
       <button className={`favorite-wide ${favorite ? "active" : ""}`} onClick={() => setFavorite(value => !value)}><Heart fill={favorite ? "currentColor" : "none"} /> {favorite ? "Favorit" : "Lägg till som favorit"}</button>
-      <div className="modal-actions">{saved && <button className="remove" onClick={() => onRemove(book)}>Ta bort</button>}<button className="save" disabled={!formats.length} onClick={() => onSave({ ...detailedBook, readingStatus }, formats, favorite)}>{saved ? "Spara övriga ändringar" : "Lägg till i biblioteket"}</button></div>
+      <div className="modal-actions">{saved && <button className="remove" onClick={() => onRemove(book)}>Ta bort</button>}<button className="save" disabled={!formats.length} onClick={saveChanges}>{saved ? "Spara övriga ändringar" : "Lägg till i biblioteket"}</button></div>
     </section>
   </div>;
 }

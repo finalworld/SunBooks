@@ -46,6 +46,8 @@ export default function Home() {
   const owned = (id: string) => library.find(book => book.id === id);
   const visibleBooks = view === "library" ? library : results;
   const showingContent = view === "library" || results.length > 0 || loading || Boolean(error);
+  const currentYear = new Date().getFullYear();
+  const readThisYear = library.filter(book => book.readingStatus === "read" && (!book.completedAt || new Date(book.completedAt).getFullYear() === currentYear)).length;
 
   async function searchBooks(nextPage = 1, forced?: string) {
     const term = (forced ?? query).trim();
@@ -80,7 +82,11 @@ export default function Home() {
 
   async function changeReadingStatus(book: Book, readingStatus?: ReadingStatus) {
     if (!user) return;
-    const updated = { ...book, readingStatus };
+    const updated: Book = { ...book };
+    if (readingStatus) updated.readingStatus = readingStatus;
+    else delete updated.readingStatus;
+    if (readingStatus === "read") updated.completedAt = book.completedAt || new Date().toISOString();
+    else delete updated.completedAt;
     await setDoc(doc(db, "users", user.uid, "books", book.id), updated);
     setLibrary(current => current.map(item => item.id === book.id ? updated : item));
     setSelected(updated);
@@ -115,7 +121,7 @@ export default function Home() {
 
   return <main className="app-shell">
     <SearchHeader query={query} advanced={advanced} onQuery={setQuery} onSearch={() => searchBooks(1)} onClear={() => { setQuery(""); setResults([]); setError(""); }} onMenu={() => setMenuOpen(true)} onAdvanced={() => setAdvanced(value => !value)} onBarcode={() => { setAdvanced(false); setError(""); setScanMode("barcode"); }} onText={() => { setAdvanced(false); setError(""); setScanMode("text"); }} />
-    {!showingContent && view === "home" && <HomeHero libraryCount={library.length} />}
+    {!showingContent && view === "home" && <HomeHero libraryCount={library.length} readCount={readThisYear} />}
     {view === "settings" && <SettingsPage theme={theme} setTheme={setTheme} user={user} />}
     {(view === "library" || showingContent) && view !== "settings" && <BookList view={view} books={visibleBooks} library={library} loading={loading} error={error} total={total} page={page} onPage={searchBooks} onSelect={setSelected} onFavorite={toggleFavorite} />}
     {menuOpen && <NavigationDrawer user={user} count={library.length} onClose={() => setMenuOpen(false)} onNavigate={navigate} onSignOut={() => signOut(auth)} />}
