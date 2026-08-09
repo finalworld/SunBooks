@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { collection, deleteDoc, doc, getDocs, setDoc } from "firebase/firestore";
-import { getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut, type User } from "firebase/auth";
+import { deleteUser, getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut, type User } from "firebase/auth";
 import { auth, db, googleProvider } from "../src/lib/firebase";
 import { findBooks } from "../src/lib/books";
-import type { Book, BookFormat, ReadingStatus, ScanMode, Theme, View } from "../src/types";
+import type { Book, ScanMode, Theme, View } from "../src/types";
 import { LoginPage } from "../src/components/LoginPage";
 import { SearchHeader } from "../src/components/SearchHeader";
 import { HomeHero } from "../src/components/HomeHero";
@@ -12,6 +12,8 @@ import { BookList } from "../src/components/BookList";
 import { NavigationDrawer } from "../src/components/NavigationDrawer";
 import { BookDetails } from "../src/components/BookDetails";
 import { BookScanner } from "../src/components/BookScanner";
+import { StatisticsPage } from "../src/components/StatisticsPage";
+import { BookEasterEgg } from "../src/components/BookEasterEgg";
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
@@ -30,6 +32,8 @@ export default function Home() {
   const [total, setTotal] = useState(0);
   const [scanMode, setScanMode] = useState<ScanMode | null>(null);
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem("sunbooks-theme") as Theme) || "system");
+  const [easterEgg,setEasterEgg]=useState(false);
+  const logoTaps=useRef<number[]>([]);
 
   useEffect(() => onAuthStateChanged(auth, current => { setUser(current); setAuthReady(true); }), []);
   useEffect(() => {
@@ -44,7 +48,8 @@ export default function Home() {
   }, [user]);
 
   const owned = (id: string) => library.find(book => book.id === id);
-  const visibleBooks = view === "library" ? library : results;
+  const ownedLibrary = library.filter(book => book.owned !== false);
+  const visibleBooks = view === "library" ? ownedLibrary : results;
   const showingContent = view === "library" || results.length > 0 || loading || Boolean(error);
   const currentYear = new Date().getFullYear();
   const readThisYear = library.filter(book => book.readingStatus === "read" && (!book.completedAt || new Date(book.completedAt).getFullYear() === currentYear)).length;
@@ -61,11 +66,15 @@ export default function Home() {
     finally { setLoading(false); }
   }
 
-  async function saveBook(book: Book, formats: BookFormat[], favorite = false) {
+  async function patchBook(book: Book, change: Partial<Book>) {
     if (!user) return;
-    const saved = { ...book, formats, favorite, addedAt: owned(book.id)?.addedAt || new Date().toISOString() };
-    await setDoc(doc(db, "users", user.uid, "books", book.id), saved);
-    setLibrary(current => [saved, ...current.filter(item => item.id !== book.id)]); setSelected(saved);
+    const existing = owned(book.id);
+    const updated: Book = { ...book, ...change, addedAt: existing?.addedAt || book.addedAt || new Date().toISOString(), updatedAt:new Date().toISOString() };
+    if (!existing) updated.owned = Boolean(updated.formats?.length || updated.copies?.length);
+    if ("formats" in change || "copies" in change) updated.owned = Boolean(updated.formats?.length || updated.copies?.length);
+    const clean = JSON.parse(JSON.stringify(updated)) as Book;
+    await setDoc(doc(db, "users", user.uid, "books", book.id), clean);
+    setLibrary(current => [clean, ...current.filter(item => item.id !== book.id)]); setSelected(clean);
   }
 
   async function removeBook(book: Book) {
@@ -74,22 +83,14 @@ export default function Home() {
     setLibrary(current => current.filter(item => item.id !== book.id)); setSelected(null);
   }
 
+  async function importBooks(books:Book[]){if(!user)return;for(const book of books){const clean=JSON.parse(JSON.stringify(book)) as Book;await setDoc(doc(db,"users",user.uid,"books",clean.id),clean)}setLibrary(current=>{const map=new Map(current.map(book=>[book.id,book]));books.forEach(book=>map.set(book.id,book));return Array.from(map.values())})}
+  async function deleteLibrary(){if(!user)return;await Promise.all(library.map(book=>deleteDoc(doc(db,"users",user.uid,"books",book.id))));setLibrary([]);setSelected(null)}
+  async function deleteAccount(){await deleteLibrary();if(auth.currentUser)await deleteUser(auth.currentUser)}
+
   async function toggleFavorite(book: Book) {
     const saved = owned(book.id);
     if (!saved) { setSelected(book); return; }
-    await saveBook(saved, saved.formats || ["physical"], !saved.favorite);
-  }
-
-  async function changeReadingStatus(book: Book, readingStatus?: ReadingStatus) {
-    if (!user) return;
-    const updated: Book = { ...book };
-    if (readingStatus) updated.readingStatus = readingStatus;
-    else delete updated.readingStatus;
-    if (readingStatus === "read") updated.completedAt = book.completedAt || new Date().toISOString();
-    else delete updated.completedAt;
-    await setDoc(doc(db, "users", user.uid, "books", book.id), updated);
-    setLibrary(current => current.map(item => item.id === book.id ? updated : item));
-    setSelected(updated);
+    await patchBook(saved, { favorite:!saved.favorite });
   }
 
   async function login() {
@@ -116,16 +117,21 @@ export default function Home() {
     if (next === "home") { setResults([]); setError(""); }
   }
 
+  function logoTap(){const now=Date.now();logoTaps.current=[...logoTaps.current.filter(time=>now-time<1800),now];if(logoTaps.current.length>=7){logoTaps.current=[];setEasterEgg(true)}}
+
   if (!authReady) return <main className="center"><div className="loader" /></main>;
   if (!user) return <LoginPage onLogin={login} error={authError} />;
 
   return <main className="app-shell">
     <SearchHeader query={query} advanced={advanced} onQuery={setQuery} onSearch={() => searchBooks(1)} onClear={() => { setQuery(""); setResults([]); setError(""); }} onMenu={() => setMenuOpen(true)} onAdvanced={() => setAdvanced(value => !value)} onBarcode={() => { setAdvanced(false); setError(""); setScanMode("barcode"); }} onText={() => { setAdvanced(false); setError(""); setScanMode("text"); }} />
-    {!showingContent && view === "home" && <HomeHero libraryCount={library.length} readCount={readThisYear} />}
-    {view === "settings" && <SettingsPage theme={theme} setTheme={setTheme} user={user} />}
-    {(view === "library" || showingContent) && view !== "settings" && <BookList view={view} books={visibleBooks} library={library} loading={loading} error={error} total={total} page={page} onPage={searchBooks} onSelect={setSelected} onFavorite={toggleFavorite} />}
-    {menuOpen && <NavigationDrawer user={user} count={library.length} onClose={() => setMenuOpen(false)} onNavigate={navigate} onSignOut={() => signOut(auth)} />}
-    {selected && <BookDetails book={selected} saved={owned(selected.id)} onClose={() => setSelected(null)} onSave={saveBook} onStatusChange={changeReadingStatus} onRemove={removeBook} />}
+    {!showingContent && view === "home" && <HomeHero libraryCount={ownedLibrary.length} readCount={readThisYear} onLogoTap={logoTap} />}
+    {view === "settings" && <SettingsPage theme={theme} setTheme={setTheme} user={user} books={library} onImport={importBooks} onDeleteLibrary={deleteLibrary} onDeleteAccount={deleteAccount} />}
+    {view === "stats" && <StatisticsPage books={library}/>} 
+    {view === "library" && <BookList view={view} books={ownedLibrary} library={ownedLibrary} loading={false} error="" total={ownedLibrary.length} page={1} onPage={()=>undefined} onSelect={setSelected} onFavorite={toggleFavorite} />}
+    {view === "home" && showingContent && <BookList view={view} books={results} library={ownedLibrary} loading={loading} error={error} total={total} page={page} onPage={searchBooks} onSelect={setSelected} onFavorite={toggleFavorite} />}
+    {menuOpen && <NavigationDrawer user={user} count={ownedLibrary.length} onClose={() => setMenuOpen(false)} onNavigate={navigate} onSignOut={() => signOut(auth)} />}
+    {selected && <BookDetails book={selected} saved={owned(selected.id)} onClose={() => setSelected(null)} onPatch={patchBook} onRemove={removeBook} />}
     {scanMode && <BookScanner mode={scanMode} onCode={scannedCode} onClose={closeScanner} onError={scannerError} />}
+    {easterEgg&&<BookEasterEgg onClose={()=>setEasterEgg(false)}/>} 
   </main>;
 }

@@ -1,7 +1,2 @@
-export function HomeHero({ libraryCount, readCount = 0 }: { libraryCount: number; readCount?: number }) {
-  return <section className="hero">
-    <img src="/sunbooks-logo.png" alt="SunBooks – böcker och en varm kopp" />
-    <p>Böcker jag läst i år</p><strong>{readCount}</strong>
-    <span>{libraryCount} {libraryCount === 1 ? "bok" : "böcker"} i biblioteket</span>
-  </section>;
-}
+import { useI18n } from "../i18n";
+export function HomeHero({libraryCount,readCount=0,onLogoTap}:{libraryCount:number;readCount?:number;onLogoTap:()=>void}){const{t}=useI18n();return <section className="hero"><button className="hero-logo" onClick={onLogoTap}><img src="/sunbooks-logo.png" alt="SunBooks"/></button><p>{t("readThisYear")}</p><strong>{readCount}</strong><span>{libraryCount} {libraryCount===1?t("bookInLibrary"):t("booksInLibrary")}</span></section>}

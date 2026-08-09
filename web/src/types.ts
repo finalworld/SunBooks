@@ -1,8 +1,26 @@
 export type BookFormat = "physical" | "ebook" | "audio";
 export type Theme = "system" | "light" | "dark";
-export type View = "home" | "library" | "settings";
+export type Language = "sv" | "en";
+export type View = "home" | "library" | "stats" | "settings";
 export type ScanMode = "barcode" | "text";
 export type ReadingStatus = "want_to_read" | "reading" | "read" | "dnf" | "dnf_for_now";
+export type ProgressMode = "pages" | "percent";
+
+export type BookCopy = {
+  id: string;
+  format: BookFormat;
+  provider?: string;
+  device?: string;
+  note?: string;
+};
+
+export type ReadingSession = {
+  id: string;
+  startedAt: string;
+  finishedAt?: string;
+  status?: ReadingStatus;
+  rating?: number | "bajs";
+};
 
 export type Book = {
   id: string;
@@ -17,8 +35,18 @@ export type Book = {
   languages?: string[];
   formats?: BookFormat[];
   favorite?: boolean;
+  owned?: boolean;
   readingStatus?: ReadingStatus;
   completedAt?: string;
+  startedAt?: string;
+  progressMode?: ProgressMode;
+  progressValue?: number;
+  rating?: number | "bajs";
+  review?: string;
+  copies?: BookCopy[];
+  tags?: string[];
+  sessions?: ReadingSession[];
+  updatedAt?: string;
   addedAt?: string;
 };
 
