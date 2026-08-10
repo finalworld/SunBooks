@@ -5,7 +5,7 @@ import { getFirestore } from "firebase/firestore";
 const firebaseConfig = {
   apiKey: "AIzaSyASuvaFV9g48N8uzbjX5rC06iqXU2WgU-U",
   // Same origin as the app avoids iPhone/Safari storage partitioning during OAuth.
-  authDomain: "sunbooks-fe49c.web.app",
+  authDomain: "sunreads.se",
   projectId: "sunbooks-fe49c",
   storageBucket: "sunbooks-fe49c.firebasestorage.app",
   messagingSenderId: "278678544545",
