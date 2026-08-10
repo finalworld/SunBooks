@@ -41,4 +41,5 @@
 @media(min-width:720px){.menu-button img,.menu-button:hover img{transform:scale(1.38)}}
 .menu-button img,.menu-button:hover img{transform:translateY(-3px) scale(1.29)}
 @media(min-width:720px){.menu-button img,.menu-button:hover img{transform:translateY(-3px) scale(1.29)}}
+.parchment-drawer .drawer-brand>button,.parchment-drawer .drawer-brand>button:hover{padding:0;border:0;background:transparent;box-shadow:none;transform:none}.parchment-drawer .drawer-brand>button img{display:block;width:48px;height:48px;object-fit:contain}
 @keyframes spin{to{transform:rotate(360deg)}}@keyframes shine{to{background-position:-200% 0}}@keyframes slide{from{transform:translateX(-100%)}}@keyframes up{from{transform:translateY(50px);opacity:0}}@keyframes drop{from{transform:translateY(-8px);opacity:0}}
