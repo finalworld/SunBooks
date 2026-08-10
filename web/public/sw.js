@@ -1,5 +1,5 @@
-const CACHE="sunbooks-shell-v1";
-const CORE=["/","/manifest.webmanifest","/sunbooks-logo.png"];
+const CACHE="sunreads-shell-v2";
+const CORE=["/","/manifest.webmanifest","/sunreads-logo-v4.png"];
 
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)));
