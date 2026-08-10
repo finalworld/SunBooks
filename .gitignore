@@ -5,5 +5,8 @@ local.properties
 *.tsbuildinfo
 **/build/
 work/
+tmp/
 *.iml
 google-services.json
+.signing/
+shell-signing.properties

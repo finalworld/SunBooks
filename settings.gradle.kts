@@ -5,3 +5,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "SunBooks"
 include(":app")
+include(":shell")

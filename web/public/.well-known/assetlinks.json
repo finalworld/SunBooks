@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.finalworld.sunbooks.shell",
+      "sha256_cert_fingerprints": [
+        "74:1D:75:A3:F4:62:4D:5C:76:EA:B3:DA:A8:8E:78:6C:EC:FD:7E:65:1A:52:10:21:F7:C5:7A:A9:9E:16:80:C8"
+      ]
+    }
+  }
+]

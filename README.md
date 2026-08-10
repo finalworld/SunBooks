@@ -1,5 +1,14 @@
 # SunBooks
 
+## Android web shell
+
+The `shell` module is a minimal Trusted Web Activity that launches
+`https://sunbooks-fe49c.web.app/` as an Android app. It uses the separately
+stored signing configuration in `shell-signing.properties`; the signing key and
+properties must be preserved to publish compatible updates.
+
+Build the signed APK with `gradlew :shell:assembleRelease`.
+
 SunBooks är ett personligt bibliotek för att söka, skanna och hålla ordning på böcker.
 
 ## Webbversion
