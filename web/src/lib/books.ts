@@ -54,6 +54,20 @@ export async function findBooks(term: string, page: number) {
     const candidates = Array.from({ length: titleWords.length }, (_, index) => titleWords.slice(0, titleWords.length - index).join(" "));
     const normalizeTitle = (value: string) => value.toLocaleLowerCase().replace(/^(?:the|a|an)\s+/, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 
+    // Amazon commonly ends its URL slug with the author's name. Try every
+    // sensible title/author split before falling back to title-only matches.
+    if (bookNumberIndex < 0 && words.length >= 3) {
+      for (let split = 1; split <= words.length - 2; split++) {
+        const title = words.slice(0, split).join(" ");
+        const author = words.slice(split).join(" ");
+        const authorResponse = await fetch(`https://openlibrary.org/search.json?title=${encodeURIComponent(title)}&author=${encodeURIComponent(author)}&page=1&limit=20&fields=${fields}`);
+        if (!authorResponse.ok) continue;
+        const authorData = await authorResponse.json();
+        const authorBooks = (authorData.docs || []).map(normalizeBook).filter((book: Book) => normalizeTitle(book.title) === normalizeTitle(title));
+        if (authorBooks.length) return { books: authorBooks, total: authorBooks.length } as { books: Book[]; total: number };
+      }
+    }
+
     for (const candidate of candidates) {
       if (candidate.length < 3) continue;
       const exactResponse = await fetch(`https://openlibrary.org/search.json?title=${encodeURIComponent(candidate)}&page=1&limit=20&fields=${fields}`);
