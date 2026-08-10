@@ -4,7 +4,7 @@ import { BarChart3, BookOpen, Library, Power, Settings } from "lucide-react";
 import type { View } from "../types";
 import { useI18n } from "../i18n";
 
-const APP_VERSION="0.5.1";
+const APP_VERSION="0.5.2";
 
 export function NavigationDrawer({user,count,onClose,onNavigate,onSignOut}:{user:User;count:number;onClose:()=>void;onNavigate:(view:View)=>void;onSignOut:()=>void}){
   const{t}=useI18n();const[confirmSignOut,setConfirmSignOut]=useState(false);
