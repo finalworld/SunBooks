@@ -26,6 +26,8 @@ export default function Home() {
   const [results, setResults] = useState<Book[]>([]);
   const [library, setLibrary] = useState<Book[]>([]);
   const [selected, setSelected] = useState<Book | null>(null);
+  const [selectedSource, setSelectedSource] = useState<"library" | "search">("search");
+  const [libraryScope, setLibraryScope] = useState<{ kind:"author" | "category"; value:string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
@@ -49,6 +51,7 @@ export default function Home() {
 
   const owned = (id: string) => library.find(book => book.id === id);
   const ownedLibrary = library.filter(book => book.owned !== false);
+  const scopedLibrary = libraryScope ? ownedLibrary.filter(book => libraryScope.kind === "author" ? book.authors.some(author => author.toLocaleLowerCase() === libraryScope.value.toLocaleLowerCase()) : book.genres?.some(genre => genre.toLocaleLowerCase() === libraryScope.value.toLocaleLowerCase())) : ownedLibrary;
   const visibleBooks = view === "library" ? ownedLibrary : results;
   const showingContent = view === "library" || results.length > 0 || loading || Boolean(error);
   const currentYear = new Date().getFullYear();
@@ -115,8 +118,13 @@ export default function Home() {
 
   function navigate(next: View) {
     setView(next); setMenuOpen(false);
+    if (next === "library") setLibraryScope(null);
     if (next === "home") { setResults([]); setError(""); }
   }
+
+  function selectBook(book:Book, source:"library" | "search"){setSelectedSource(source);setSelected(book)}
+  function selectAuthor(author:string){setSelected(null);if(selectedSource==="library"){setLibraryScope({kind:"author",value:author});setView("library")}else{setQuery(author);void searchBooks(1,author)}}
+  function selectCategory(category:string){if(selectedSource!=="library")return;setSelected(null);setLibraryScope({kind:"category",value:category});setView("library")}
 
   function logoTap(){const now=Date.now();logoTaps.current=[...logoTaps.current.filter(time=>now-time<1800),now];if(logoTaps.current.length>=7){logoTaps.current=[];setEasterEgg(true)}}
 
@@ -128,10 +136,10 @@ export default function Home() {
     {!showingContent && view === "home" && <HomeHero libraryCount={ownedLibrary.length} readCount={readThisYear} onLogoTap={logoTap} />}
     {view === "settings" && <SettingsPage theme={theme} setTheme={setTheme} user={user} books={library} onImport={importBooks} onDeleteLibrary={deleteLibrary} onDeleteAccount={deleteAccount} />}
     {view === "stats" && <StatisticsPage books={library}/>} 
-    {view === "library" && <BookList view={view} books={ownedLibrary} library={ownedLibrary} loading={false} error="" total={ownedLibrary.length} page={1} onPage={()=>undefined} onSelect={setSelected} onFavorite={toggleFavorite} />}
-    {view === "home" && showingContent && <BookList view={view} books={results} library={ownedLibrary} loading={loading} error={error} total={total} page={page} onPage={searchBooks} onSelect={setSelected} onFavorite={toggleFavorite} />}
+    {view === "library" && <BookList view={view} books={scopedLibrary} library={ownedLibrary} loading={false} error="" total={scopedLibrary.length} page={1} onPage={()=>undefined} onSelect={book=>selectBook(book,"library")} onFavorite={toggleFavorite} />}
+    {view === "home" && showingContent && <BookList view={view} books={results} library={ownedLibrary} loading={loading} error={error} total={total} page={page} onPage={searchBooks} onSelect={book=>selectBook(book,"search")} onFavorite={toggleFavorite} />}
     {menuOpen && <NavigationDrawer user={user} count={ownedLibrary.length} onClose={() => setMenuOpen(false)} onNavigate={navigate} onSignOut={() => signOut(auth)} />}
-    {selected && <BookDetails book={selected} saved={owned(selected.id)} onClose={() => setSelected(null)} onPatch={patchBook} onRemove={removeBook} />}
+    {selected && <BookDetails book={selected} saved={owned(selected.id)} source={selectedSource} onClose={() => setSelected(null)} onPatch={patchBook} onRemove={removeBook} onAuthor={selectAuthor} onCategory={selectCategory} />}
     {scanMode && <BookScanner mode={scanMode} onCode={scannedCode} onClose={closeScanner} onError={scannerError} />}
     {easterEgg&&<BookEasterEgg onClose={()=>setEasterEgg(false)}/>} 
   </main>;
