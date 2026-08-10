@@ -6,6 +6,13 @@ export type ScanMode = "barcode" | "text";
 export type ReadingStatus = "want_to_read" | "reading" | "read" | "dnf" | "dnf_for_now";
 export type ProgressMode = "pages" | "percent";
 
+export type Shelf = {
+  id: string;
+  name: string;
+  custom?: boolean;
+  createdAt?: string;
+};
+
 export type BookCopy = {
   id: string;
   format: BookFormat;
@@ -46,6 +53,7 @@ export type Book = {
   copies?: BookCopy[];
   tags?: string[];
   sessions?: ReadingSession[];
+  shelfIds?: string[];
   updatedAt?: string;
   addedAt?: string;
 };

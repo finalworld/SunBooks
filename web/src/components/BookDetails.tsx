@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { BookOpen, Check, Heart, Plus, Star, Trash2, X } from "lucide-react";
-import { formatLabels, readingStatusLabels, type Book, type BookCopy, type BookFormat, type ReadingStatus } from "../types";
+import { formatLabels, readingStatusLabels, type Book, type BookCopy, type BookFormat, type ReadingStatus, type Shelf } from "../types";
 import { getBookDetails } from "../lib/books";
 import { useI18n } from "../i18n";
 import { MediaBadges } from "./BookIndicators";
@@ -11,11 +11,13 @@ type Props = {
   onRemove: (book: Book) => void;
   onAuthor: (author:string) => void;
   onCategory: (category:string) => void;
+  shelves: Shelf[];
+  onCreateShelf: (name:string) => Promise<Shelf>;
 };
 
 const ratingValues = Array.from({ length: 21 }, (_, index) => index * .25);
 
-export function BookDetails({ book, saved, source, onClose, onPatch, onRemove, onAuthor, onCategory }: Props) {
+export function BookDetails({ book, saved, source, onClose, onPatch, onRemove, onAuthor, onCategory, shelves, onCreateShelf }: Props) {
   const { t } = useI18n();
   const [onlineDetails, setOnlineDetails] = useState<Partial<Book>>({});
   const [draft, setDraft] = useState<Book>(saved || book);
@@ -23,6 +25,7 @@ export function BookDetails({ book, saved, source, onClose, onPatch, onRemove, o
   const [savedFlash, setSavedFlash] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [newTag, setNewTag] = useState("");
+  const [newShelf, setNewShelf] = useState("");
   const reviewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { getBookDetails(book).then(details => { setOnlineDetails(details); if (Object.keys(details).length) setDraft(current => ({ ...current, ...details })); }).catch(() => undefined); }, [book.id]);
@@ -68,6 +71,8 @@ export function BookDetails({ book, saved, source, onClose, onPatch, onRemove, o
 
   function removeCopy(id: string) { patch({ copies: (draft.copies || []).filter(copy => copy.id !== id) }); }
   function addTag() { const value = newTag.trim(); if (!value) return; patch({ tags: Array.from(new Set([...(draft.tags || []), value])) }); setNewTag(""); }
+  function toggleShelf(id:string){const current=draft.shelfIds||[];patch({shelfIds:current.includes(id)?current.filter(item=>item!==id):[...current,id]})}
+  async function createShelf(){const name=newShelf.trim();if(!name)return;const shelf=await onCreateShelf(name);setNewShelf("");if(!(draft.shelfIds||[]).includes(shelf.id))await patch({shelfIds:[...(draft.shelfIds||[]),shelf.id]})}
   function startNewReading(){const sessions=[...(draft.sessions||[])];if(draft.startedAt||draft.completedAt||draft.readingStatus)sessions.push({id:crypto.randomUUID(),startedAt:draft.startedAt||draft.addedAt||new Date().toISOString(),finishedAt:draft.completedAt,status:draft.readingStatus,rating:draft.rating});patch({sessions,readingStatus:"reading",startedAt:new Date().toISOString(),completedAt:undefined,progressValue:0,rating:undefined})}
   function removeLatestSession(){patch({sessions:(draft.sessions||[]).slice(0,-1)})}
 
@@ -87,6 +92,8 @@ export function BookDetails({ book, saved, source, onClose, onPatch, onRemove, o
       <section className="detail-section categories-section"><h3>{t("categories")}</h3>{details.genres?.length ? <div className="category-chips">{details.genres.map(genre => source==="library"?<button className="category-link" onClick={()=>onCategory(genre)} key={genre}>{genre}</button>:<span key={genre}>{genre}</span>)}</div> : <p>{t("noCategories")}</p>}</section>
 
       <section className="detail-section status-section"><h3>{t("readingStatus")}</h3><p>{t("statusHelp")}</p><div className="status-options">{(Object.keys(readingStatusLabels) as ReadingStatus[]).map(status => <button className={draft.readingStatus === status ? "selected" : ""} onClick={() => chooseStatus(status)} key={status}>{draft.readingStatus === status && <Check />}{statusLabels[status]}</button>)}</div></section>
+
+      <section className="detail-section shelves-section"><h3>{t("shelves")}</h3><p>{t("shelfHelp")}</p><div className="shelf-options">{shelves.map(shelf=><label key={shelf.id}><input type="checkbox" checked={(draft.shelfIds||[]).includes(shelf.id)} onChange={()=>toggleShelf(shelf.id)}/><span>{shelf.name}</span></label>)}</div><div className="tag-input"><input value={newShelf} onChange={event=>setNewShelf(event.target.value)} onKeyDown={event=>{if(event.key==="Enter")void createShelf()}} placeholder={t("shelfName")}/><button onClick={()=>void createShelf()}><Plus/>{t("createShelf")}</button></div></section>
 
       <section className="detail-section rating-section"><h3>{t("myRating")}</h3><div className="rating-control"><Star fill="currentColor" /><select value={draft.rating ?? ""} onChange={event => patch({ rating: event.target.value === "" ? undefined : event.target.value === "bajs" ? "bajs" : Number(event.target.value) })}><option value="">{t("noRating")}</option><option value="bajs">💩 {t("bajs")}</option>{ratingValues.map(value => <option value={value} key={value}>{value.toFixed(2)} ★</option>)}</select></div></section>
 
