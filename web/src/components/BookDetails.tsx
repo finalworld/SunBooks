@@ -19,7 +19,7 @@ type Props = {
 const ratingValues = Array.from({ length: 21 }, (_, index) => index * .25);
 
 export function BookDetails({ book, saved, source, communityReviews, onClose, onPatch, onRemove, onAuthor, onCategory, onSeries, shelves, onCreateShelf }: Props) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const [onlineDetails, setOnlineDetails] = useState<Partial<Book>>({});
   const [draft, setDraft] = useState<Book>(saved || book);
   const [saving, setSaving] = useState(false);
@@ -116,7 +116,7 @@ export function BookDetails({ book, saved, source, communityReviews, onClose, on
       <button className="danger-wide" onClick={() => setConfirmRemove(true)}><Trash2 />{t("remove")}</button>
       {confirmRemove && <div className="confirm-box"><strong>{t("removeBook")}</strong><p>{t("removeConfirm")}</p><div><button onClick={() => setConfirmRemove(false)}>{t("cancel")}</button><button className="danger" onClick={() => onRemove(details)}>{t("confirmRemove")}</button></div></div>}
       </div>
-      {source==="discover"&&detailTab==="reviews"&&<section className="community-reviews"><div className="section-title-row"><h2>{t("reviewsTab")}</h2><button onClick={()=>{const next=!showSpoilers;setShowSpoilers(next);localStorage.setItem("sunbooks-spoilers",String(next))}}>{showSpoilers?<EyeOff/>:<Eye/>}{showSpoilers?t("hideSpoilers"):t("showSpoilers")}</button></div>{communityReviews.length===0?<div className="empty"><p>{t("noPublicReviews")}</p></div>:[...communityReviews].sort((a,b)=>(b.updatedAt||"").localeCompare(a.updatedAt||"")).map((review,index)=><article className="community-review" key={`${review.updatedAt||"review"}-${index}`}>{review.reviewSpoiler&&!showSpoilers?<div className="spoiler-mask"><strong>{t("spoilerWarning")}</strong><button onClick={()=>{setShowSpoilers(true);localStorage.setItem("sunbooks-spoilers","true")}}>{t("showAnyway")}</button></div>:<><header><span>{review.updatedAt?new Date(review.updatedAt).toLocaleDateString():""}</span></header>{review.rating!==undefined&&<b>{review.rating==="bajs"?"💩 BAJS":`${Number(review.rating).toFixed(2)} ★`}</b>}<p>{review.review}</p></>}</article>)}</section>}
+      {source==="discover"&&detailTab==="reviews"&&<section className="community-reviews"><div className="section-title-row"><h2>{t("reviewsTab")}</h2><button onClick={()=>{const next=!showSpoilers;setShowSpoilers(next);localStorage.setItem("sunbooks-spoilers",String(next))}}>{showSpoilers?<EyeOff/>:<Eye/>}{showSpoilers?t("hideSpoilers"):t("showSpoilers")}</button></div>{communityReviews.length===0?<div className="empty"><p>{t("noPublicReviews")}</p></div>:[...communityReviews].sort((a,b)=>(b.updatedAt||"").localeCompare(a.updatedAt||"")).map((review,index)=><article className="community-review" key={`${review.updatedAt||"review"}-${index}`}>{review.reviewSpoiler&&!showSpoilers?<div className="spoiler-mask"><strong>{t("spoilerWarning")}</strong><button onClick={()=>{setShowSpoilers(true);localStorage.setItem("sunbooks-spoilers","true")}}>{t("showAnyway")}</button></div>:<><header>{review.rating!==undefined&&<b>{language==="sv"?"Betyg":"Rating"}: {review.rating==="bajs"?"BAJS 💩":`${Number(review.rating).toFixed(2).replace(/\.?0+$/,'')} ★`}</b>}<span>{review.updatedAt?new Date(review.updatedAt).toLocaleDateString():""}</span></header><p>{review.review}</p></>}</article>)}</section>}
     </section>
   </div>;
 }
