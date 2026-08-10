@@ -37,4 +37,6 @@
 @media(min-width:720px){.menu-button img,.menu-button:hover img{transform:translateY(-3px) scale(1.23)}}
 .menu-button img,.menu-button:hover img{transform:translateY(2px) scale(1.19)}
 @media(min-width:720px){.menu-button img,.menu-button:hover img{transform:translateY(2px) scale(1.19)}}
+.menu-button img,.menu-button:hover img{transform:scale(1.38)}
+@media(min-width:720px){.menu-button img,.menu-button:hover img{transform:scale(1.38)}}
 @keyframes spin{to{transform:rotate(360deg)}}@keyframes shine{to{background-position:-200% 0}}@keyframes slide{from{transform:translateX(-100%)}}@keyframes up{from{transform:translateY(50px);opacity:0}}@keyframes drop{from{transform:translateY(-8px);opacity:0}}
