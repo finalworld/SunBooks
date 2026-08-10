@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { BookOpen, Check, Heart, Plus, Star, Trash2, X } from "lucide-react";
+import { BookOpen, Check, Eye, EyeOff, Heart, Plus, Star, Trash2, X } from "lucide-react";
 import { formatLabels, readingStatusLabels, type Book, type BookCopy, type BookFormat, type ReadingStatus, type Shelf } from "../types";
 import { getBookDetails } from "../lib/books";
 import { useI18n } from "../i18n";
 import { MediaBadges } from "./BookIndicators";
 
 type Props = {
-  book: Book; saved?: Book; source:"library" | "search"; onClose: () => void;
+  book: Book; saved?: Book; source:"library" | "search" | "discover"; communityReviews:Book[]; onClose: () => void;
   onPatch: (book: Book, patch: Partial<Book>) => Promise<void>;
   onRemove: (book: Book) => void;
   onAuthor: (author:string) => void;
@@ -18,7 +18,7 @@ type Props = {
 
 const ratingValues = Array.from({ length: 21 }, (_, index) => index * .25);
 
-export function BookDetails({ book, saved, source, onClose, onPatch, onRemove, onAuthor, onCategory, onSeries, shelves, onCreateShelf }: Props) {
+export function BookDetails({ book, saved, source, communityReviews, onClose, onPatch, onRemove, onAuthor, onCategory, onSeries, shelves, onCreateShelf }: Props) {
   const { t } = useI18n();
   const [onlineDetails, setOnlineDetails] = useState<Partial<Book>>({});
   const [draft, setDraft] = useState<Book>(saved || book);
@@ -27,6 +27,8 @@ export function BookDetails({ book, saved, source, onClose, onPatch, onRemove, o
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [newTag, setNewTag] = useState("");
   const [newShelf, setNewShelf] = useState("");
+  const [detailTab,setDetailTab]=useState<"about"|"reviews">("about");
+  const [showSpoilers,setShowSpoilers]=useState(()=>localStorage.getItem("sunbooks-spoilers")==="true");
   const reviewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { getBookDetails(book).then(details => { setOnlineDetails(details); if (Object.keys(details).length) setDraft(current => ({ ...current, ...details })); }).catch(() => undefined); }, [book.id]);
@@ -86,6 +88,8 @@ export function BookDetails({ book, saved, source, onClose, onPatch, onRemove, o
     <section className="book-modal">
       <div className="autosave-status">{saving ? <><span className="mini-loader" />{t("saving")}</> : savedFlash ? <><Check />{t("saved")}</> : null}</div>
       <button className="modal-close" onClick={onClose} aria-label={t("close")}><X /></button>
+      {source==="discover"&&<nav className="detail-tabs"><button className={detailTab==="about"?"selected":""} onClick={()=>setDetailTab("about")}>{t("aboutBookTab")}</button><button className={detailTab==="reviews"?"selected":""} onClick={()=>setDetailTab("reviews")}>{t("reviewsTab")} ({communityReviews.length})</button></nav>}
+      <div className={source==="discover"&&detailTab==="reviews"?"detail-pane-hidden":""}>
       <div className="detail-hero"><div className="detail-cover">{details.cover ? <img src={details.cover} alt={`${t("coverOf")} ${details.title}`} /> : <BookOpen />}</div><div className="detail-title-copy"><button className={`detail-favorite ${draft.favorite ? "active" : ""}`} onClick={() => patch({ favorite:!draft.favorite })} aria-label={t("favorite")}><Heart fill={draft.favorite ? "currentColor" : "none"}/></button><p>{details.year || t("yearMissing")}</p><h1>{details.title}</h1><h2 className="author-links">{details.authors.map((author,index)=><span key={author}><button onClick={()=>onAuthor(author)}>{author}</button>{index<details.authors.length-1?", ":""}</span>)}</h2><MediaBadges book={draft}/></div></div>
       {details.seriesName&&<button className="series-banner" onClick={()=>onSeries(details.seriesName!)}><span>{t("series")}: <strong>{details.seriesName}</strong>{details.seriesPosition?` · ${t("part")} ${details.seriesPosition}`:""}</span><b>{t("showSeries")}</b></button>}
       <div className="facts">{details.pages && <span><strong>{details.pages}</strong>{t("pages")}</span>}{details.isbn && <span><strong>{details.isbn}</strong>{t("isbn")}</span>}{details.languages?.[0] && <span><strong>{details.languages[0].toUpperCase()}</strong>{t("languageShort")}</span>}{details.addedAt&&<span><strong>{new Date(details.addedAt).toLocaleDateString()}</strong>{t("added")}</span>}</div>
@@ -111,6 +115,8 @@ export function BookDetails({ book, saved, source, onClose, onPatch, onRemove, o
 
       <button className="danger-wide" onClick={() => setConfirmRemove(true)}><Trash2 />{t("remove")}</button>
       {confirmRemove && <div className="confirm-box"><strong>{t("removeBook")}</strong><p>{t("removeConfirm")}</p><div><button onClick={() => setConfirmRemove(false)}>{t("cancel")}</button><button className="danger" onClick={() => onRemove(details)}>{t("confirmRemove")}</button></div></div>}
+      </div>
+      {source==="discover"&&detailTab==="reviews"&&<section className="community-reviews"><div className="section-title-row"><h2>{t("reviewsTab")}</h2><button onClick={()=>{const next=!showSpoilers;setShowSpoilers(next);localStorage.setItem("sunbooks-spoilers",String(next))}}>{showSpoilers?<EyeOff/>:<Eye/>}{showSpoilers?t("hideSpoilers"):t("showSpoilers")}</button></div>{communityReviews.length===0?<div className="empty"><p>{t("noPublicReviews")}</p></div>:[...communityReviews].sort((a,b)=>(b.updatedAt||"").localeCompare(a.updatedAt||"")).map((review,index)=><article className="community-review" key={`${review.updatedAt||"review"}-${index}`}>{review.reviewSpoiler&&!showSpoilers?<div className="spoiler-mask"><strong>{t("spoilerWarning")}</strong><button onClick={()=>{setShowSpoilers(true);localStorage.setItem("sunbooks-spoilers","true")}}>{t("showAnyway")}</button></div>:<><header><strong>{t("anonymousReader")}</strong><span>{review.updatedAt?new Date(review.updatedAt).toLocaleDateString():""}</span></header>{review.rating!==undefined&&<b>{review.rating==="bajs"?"💩 BAJS":`${Number(review.rating).toFixed(2)} ★`}</b>}<p>{review.review}</p></>}</article>)}</section>}
     </section>
   </div>;
 }

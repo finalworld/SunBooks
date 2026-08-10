@@ -39,7 +39,7 @@ export default function Home() {
   const [installPrompt,setInstallPrompt]=useState<InstallPromptEvent|null>(null);
   const [installed,setInstalled]=useState(()=>window.matchMedia("(display-mode: standalone)").matches);
   const [selected, setSelected] = useState<Book | null>(null);
-  const [selectedSource, setSelectedSource] = useState<"library" | "search">("search");
+  const [selectedSource, setSelectedSource] = useState<"library" | "search" | "discover">("search");
   const [libraryScope, setLibraryScope] = useState<{ kind:"author" | "category"; value:string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -150,7 +150,7 @@ export default function Home() {
     if(next==="discover"){setCommunityLoading(true);getDocs(firestoreQuery(collectionGroup(db,"contributions"),limit(500))).then(snapshot=>setCommunity(snapshot.docs.map(item=>item.data() as Book))).finally(()=>setCommunityLoading(false))}
   }
 
-  function selectBook(book:Book, source:"library" | "search"){setSelectedSource(source);setSelected(book)}
+  function selectBook(book:Book, source:"library" | "search" | "discover"){setSelectedSource(source);setSelected(book)}
   function selectAuthor(author:string){setSelected(null);if(selectedSource==="library"){setLibraryScope({kind:"author",value:author});setView("library")}else{setQuery(author);void searchBooks(1,author)}}
   function selectCategory(category:string){if(selectedSource!=="library")return;setSelected(null);setLibraryScope({kind:"category",value:category});setView("library")}
 
@@ -164,11 +164,11 @@ export default function Home() {
     {!showingContent && view === "home" && <HomeHero libraryCount={ownedLibrary.length} readCount={readThisYear} onLogoTap={logoTap} />}
     {view === "settings" && <SettingsPage theme={theme} setTheme={setTheme} user={user} books={library} shelves={shelves} installMode={installMode} onInstall={()=>void installApp()} isAdmin={isAdmin} userCount={userCount} totalBookCount={totalBookCount} onCreateShelf={createShelf} onDeleteShelf={deleteShelf} onImport={importBooks} onDeleteLibrary={deleteLibrary} onDeleteAccount={deleteAccount} />}
     {view === "stats" && <StatisticsPage books={library}/>} 
-    {view === "discover" && <DiscoverPage entries={community} loading={communityLoading} onSelect={book=>selectBook(book,"search")}/>}
+    {view === "discover" && <DiscoverPage entries={community} loading={communityLoading} onSelect={book=>selectBook(book,"discover")}/>}
     {view === "library" && <BookList view={view} books={scopedLibrary} library={library} shelves={shelves} loading={false} error="" total={scopedLibrary.length} page={1} onPage={()=>undefined} onSelect={book=>selectBook(book,"library")} onFavorite={toggleFavorite} onCreateShelf={createShelf} onDeleteShelf={deleteShelf} />}
     {view === "home" && showingContent && <BookList view={view} books={results} library={library} shelves={shelves} loading={loading} error={error} total={total} page={page} onPage={searchBooks} onSelect={book=>selectBook(book,"search")} onFavorite={toggleFavorite} onCreateShelf={createShelf} onDeleteShelf={deleteShelf} />}
     {menuOpen && <NavigationDrawer user={user} count={ownedLibrary.length} onClose={() => setMenuOpen(false)} onNavigate={navigate} onSignOut={() => signOut(auth)} />}
-    {selected && <BookDetails book={selected} saved={library.find(book=>book.id===selected.id)} source={selectedSource} onClose={() => setSelected(null)} onPatch={patchBook} onRemove={removeBook} onAuthor={selectAuthor} onCategory={selectCategory} onSeries={series=>{setSelected(null);setQuery(series);void searchBooks(1,series)}} shelves={shelves} onCreateShelf={createShelf} />}
+    {selected && <BookDetails book={selected} saved={library.find(book=>book.id===selected.id)} source={selectedSource} communityReviews={community.filter(item=>item.id===selected.id&&item.reviewPublic&&item.review)} onClose={() => setSelected(null)} onPatch={patchBook} onRemove={removeBook} onAuthor={selectAuthor} onCategory={selectCategory} onSeries={series=>{setSelected(null);setQuery(series);void searchBooks(1,series)}} shelves={shelves} onCreateShelf={createShelf} />}
     {scanMode && <BookScanner mode={scanMode} onCode={scannedCode} onClose={closeScanner} onError={scannerError} />}
     {easterEgg&&<BookEasterEgg onClose={()=>setEasterEgg(false)}/>} 
   </main>;
