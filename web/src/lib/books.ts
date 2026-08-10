@@ -3,7 +3,7 @@ import type { Book } from "../types";
 type OpenLibraryBook = {
   key?: string; title?: string; author_name?: string[]; cover_i?: number;
   isbn?: string[]; first_publish_year?: number; number_of_pages_median?: number;
-  subject?: string[]; language?: string[];
+  subject?: string[]; language?: string[]; series?: string[];
 };
 
 export function normalizeBook(raw: OpenLibraryBook): Book {
@@ -18,11 +18,12 @@ export function normalizeBook(raw: OpenLibraryBook): Book {
     pages: raw.number_of_pages_median,
     genres: raw.subject?.slice(0, 6) || [],
     languages: raw.language?.slice(0, 4) || [],
+    seriesName: raw.series?.[0],
   };
 }
 
 export async function findBooks(term: string, page: number) {
-  const fields = "key,title,author_name,first_publish_year,cover_i,isbn,number_of_pages_median,subject,language";
+  const fields = "key,title,author_name,first_publish_year,cover_i,isbn,number_of_pages_median,subject,language,series";
   const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(term)}&page=${page}&limit=20&fields=${fields}`);
   if (!response.ok) throw new Error("Book search failed");
   const data = await response.json();

@@ -13,13 +13,19 @@ service cloud.firestore {
     }
 
     match /users/{userId}/{document=**} {
-      allow read, write: if signedIn() && request.auth.uid == userId;
+      allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow write: if signedIn() && request.auth.uid == userId;
     }
 
     match /profiles/{userId} {
       allow create, update, delete: if signedIn() && request.auth.uid == userId;
       allow get: if signedIn() && (request.auth.uid == userId || isAdmin());
       allow list: if isAdmin();
+    }
+
+    match /communityBooks/{bookId}/contributions/{userId} {
+      allow read: if signedIn();
+      allow create, update, delete: if signedIn() && request.auth.uid == userId;
     }
   }
 }

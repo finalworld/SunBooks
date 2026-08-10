@@ -1,7 +1,7 @@
 export type BookFormat = "physical" | "ebook" | "audio";
-export type Theme = "system" | "light" | "dark";
+export type Theme = "light" | "dark" | "horror" | "romance" | "fantasy" | "scifi" | "mystery" | "drama" | "historical" | "adventure";
 export type Language = "sv" | "en";
-export type View = "home" | "library" | "stats" | "settings";
+export type View = "home" | "library" | "discover" | "stats" | "settings";
 export type ScanMode = "barcode" | "text";
 export type ReadingStatus = "want_to_read" | "reading" | "read" | "dnf" | "dnf_for_now";
 export type ProgressMode = "pages" | "percent";
@@ -50,6 +50,10 @@ export type Book = {
   progressValue?: number;
   rating?: number | "bajs";
   review?: string;
+  reviewPublic?: boolean;
+  reviewSpoiler?: boolean;
+  seriesName?: string;
+  seriesPosition?: number;
   copies?: BookCopy[];
   tags?: string[];
   sessions?: ReadingSession[];

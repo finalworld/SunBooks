@@ -11,13 +11,14 @@ type Props = {
   onRemove: (book: Book) => void;
   onAuthor: (author:string) => void;
   onCategory: (category:string) => void;
+  onSeries: (series:string) => void;
   shelves: Shelf[];
   onCreateShelf: (name:string) => Promise<Shelf>;
 };
 
 const ratingValues = Array.from({ length: 21 }, (_, index) => index * .25);
 
-export function BookDetails({ book, saved, source, onClose, onPatch, onRemove, onAuthor, onCategory, shelves, onCreateShelf }: Props) {
+export function BookDetails({ book, saved, source, onClose, onPatch, onRemove, onAuthor, onCategory, onSeries, shelves, onCreateShelf }: Props) {
   const { t } = useI18n();
   const [onlineDetails, setOnlineDetails] = useState<Partial<Book>>({});
   const [draft, setDraft] = useState<Book>(saved || book);
@@ -86,6 +87,7 @@ export function BookDetails({ book, saved, source, onClose, onPatch, onRemove, o
       <div className="autosave-status">{saving ? <><span className="mini-loader" />{t("saving")}</> : savedFlash ? <><Check />{t("saved")}</> : null}</div>
       <button className="modal-close" onClick={onClose} aria-label={t("close")}><X /></button>
       <div className="detail-hero"><div className="detail-cover">{details.cover ? <img src={details.cover} alt={`${t("coverOf")} ${details.title}`} /> : <BookOpen />}</div><div className="detail-title-copy"><button className={`detail-favorite ${draft.favorite ? "active" : ""}`} onClick={() => patch({ favorite:!draft.favorite })} aria-label={t("favorite")}><Heart fill={draft.favorite ? "currentColor" : "none"}/></button><p>{details.year || t("yearMissing")}</p><h1>{details.title}</h1><h2 className="author-links">{details.authors.map((author,index)=><span key={author}><button onClick={()=>onAuthor(author)}>{author}</button>{index<details.authors.length-1?", ":""}</span>)}</h2><MediaBadges book={draft}/></div></div>
+      {details.seriesName&&<button className="series-banner" onClick={()=>onSeries(details.seriesName!)}><span>{t("series")}: <strong>{details.seriesName}</strong>{details.seriesPosition?` · ${t("part")} ${details.seriesPosition}`:""}</span><b>{t("showSeries")}</b></button>}
       <div className="facts">{details.pages && <span><strong>{details.pages}</strong>{t("pages")}</span>}{details.isbn && <span><strong>{details.isbn}</strong>{t("isbn")}</span>}{details.languages?.[0] && <span><strong>{details.languages[0].toUpperCase()}</strong>{t("languageShort")}</span>}{details.addedAt&&<span><strong>{new Date(details.addedAt).toLocaleDateString()}</strong>{t("added")}</span>}</div>
 
       <section className="detail-section description-section"><h3>{t("about")}</h3><p>{details.description || t("noDescription")}</p></section>
@@ -99,7 +101,7 @@ export function BookDetails({ book, saved, source, onClose, onPatch, onRemove, o
 
       <section className="detail-section progress-section"><div className="section-title-row"><h3>{t("progress")}</h3><button onClick={startNewReading}><Plus/>{t("startNew")}</button></div><div className="progress-controls"><select value={draft.progressMode || "pages"} onChange={event => patch({ progressMode: event.target.value as "pages" | "percent" })}><option value="pages">{t("progressPages")}</option><option value="percent">{t("progressPercent")}</option></select><input type="number" min="0" max={draft.progressMode === "percent" ? 100 : details.pages} value={draft.progressValue ?? ""} onChange={event => patch({ progressValue: event.target.value ? Number(event.target.value) : undefined })}/><label>{t("started")}<input type="date" value={draft.startedAt?.slice(0,10)||""} onChange={event=>patch({startedAt:event.target.value?new Date(`${event.target.value}T12:00:00`).toISOString():undefined})}/></label><label>{t("finished")}<input type="date" value={draft.completedAt?.slice(0,10)||""} onChange={event=>patch({completedAt:event.target.value?new Date(`${event.target.value}T12:00:00`).toISOString():undefined})}/></label><button onClick={() => patch({ progressValue: undefined, startedAt: undefined })}>{t("clearProgress")}</button></div>{draft.sessions?.length?<div className="session-list">{draft.sessions.map(session=><div key={session.id}><span>{new Date(session.startedAt).toLocaleDateString()} {session.finishedAt?`– ${new Date(session.finishedAt).toLocaleDateString()}`:""}</span>{session.rating!==undefined&&<strong>{session.rating==="bajs"?"💩":`${Number(session.rating).toFixed(2)} ★`}</strong>}</div>)}<button onClick={removeLatestSession}><Trash2/>{t("removeLatest")}</button></div>:null}</section>
 
-      <section className="detail-section review-section"><h3>{t("privateReview")}</h3><p>{t("reviewPrivate")}</p><textarea value={draft.review || ""} onChange={event => changeReview(event.target.value)} onBlur={() => { if (reviewTimer.current) { clearTimeout(reviewTimer.current); reviewTimer.current = null; patch({ review: draft.review || "" }); } }} placeholder={t("reviewPlaceholder")} /></section>
+      <section className="detail-section review-section"><h3>{t("privateReview")}</h3><div className="review-settings"><span>{t("reviewVisibility")}</span><div><button className={!draft.reviewPublic?"selected":""} onClick={()=>patch({reviewPublic:false})}>{t("private")}</button><button className={draft.reviewPublic?"selected":""} onClick={()=>patch({reviewPublic:true})}>{t("public")}</button></div><label><input type="checkbox" checked={Boolean(draft.reviewSpoiler)} onChange={event=>patch({reviewSpoiler:event.target.checked})}/>{t("containsSpoilers")}</label></div><p>{draft.reviewPublic?t("publicReviews"):t("reviewPrivate")}</p><textarea value={draft.review || ""} onChange={event => changeReview(event.target.value)} onBlur={() => { if (reviewTimer.current) { clearTimeout(reviewTimer.current); reviewTimer.current = null; patch({ review: draft.review || "" }); } }} placeholder={t("reviewPlaceholder")} /></section>
 
       <section className="detail-section format-section"><h3>{t("ownedAs")}</h3><p>{t("chooseMultiple")}</p><div className="format-quick-options">{(Object.keys(formatLabels) as BookFormat[]).map(format => <button className={(draft.formats || []).includes(format) ? "checked" : ""} onClick={() => toggleFormat(format)} key={format}><span>{(draft.formats || []).includes(format) && <Check />}</span>{formatNames[format]}</button>)}</div></section>
 

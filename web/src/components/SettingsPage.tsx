@@ -1,15 +1,15 @@
 import { useRef, useState } from "react";
 import type { User } from "firebase/auth";
-import { Check, Download, Languages, Monitor, Moon, Plus, Settings, Smartphone, Sun, Trash2, Upload, Users } from "lucide-react";
+import { Check, Download, Languages, Moon, Plus, Settings, Smartphone, Sun, Trash2, Upload, Users, Ghost, Heart, WandSparkles, Rocket, Search, Drama, Landmark, Compass } from "lucide-react";
 import type { Book, Shelf, Theme } from "../types";
 import { useI18n } from "../i18n";
 
 export type InstallMode="available"|"ios"|"installed"|"manual";
-type Props={theme:Theme;setTheme:(theme:Theme)=>void;user:User;books:Book[];shelves:Shelf[];installMode:InstallMode;onInstall:()=>void;isAdmin:boolean;userCount:number|null;onCreateShelf:(name:string)=>Promise<Shelf>;onDeleteShelf:(shelf:Shelf)=>Promise<void>;onImport:(books:Book[])=>Promise<void>;onDeleteLibrary:()=>Promise<void>;onDeleteAccount:()=>Promise<void>};
+type Props={theme:Theme;setTheme:(theme:Theme)=>void;user:User;books:Book[];shelves:Shelf[];installMode:InstallMode;onInstall:()=>void;isAdmin:boolean;userCount:number|null;totalBookCount:number|null;onCreateShelf:(name:string)=>Promise<Shelf>;onDeleteShelf:(shelf:Shelf)=>Promise<void>;onImport:(books:Book[])=>Promise<void>;onDeleteLibrary:()=>Promise<void>;onDeleteAccount:()=>Promise<void>};
 
-export function SettingsPage({theme,setTheme,user,books,shelves,installMode,onInstall,isAdmin,userCount,onCreateShelf,onDeleteShelf,onImport,onDeleteLibrary,onDeleteAccount}:Props){
+export function SettingsPage({theme,setTheme,user,books,shelves,installMode,onInstall,isAdmin,userCount,totalBookCount,onCreateShelf,onDeleteShelf,onImport,onDeleteLibrary,onDeleteAccount}:Props){
   const {t,language,setLanguage}=useI18n();const fileRef=useRef<HTMLInputElement>(null);const [confirm,setConfirm]=useState<"library"|"account"|null>(null);const[shelfName,setShelfName]=useState("");
-  const choices=[["system",t("system"),Monitor],["light",t("light"),Sun],["dark",t("dark"),Moon]] as const;
+  const choices=[["light",t("light"),Sun],["dark",t("dark"),Moon],["horror",t("horror"),Ghost],["romance",t("romance"),Heart],["fantasy",t("fantasy"),WandSparkles],["scifi",t("scifi"),Rocket],["mystery",t("mystery"),Search],["drama",t("drama"),Drama],["historical",t("historical"),Landmark],["adventure",t("adventure"),Compass]] as const;
   function exportData(){const payload=JSON.stringify({app:"SunBooks",version:1,exportedAt:new Date().toISOString(),books,shelves:shelves.filter(shelf=>shelf.custom)},null,2);const url=URL.createObjectURL(new Blob([payload],{type:"application/json"}));const link=document.createElement("a");link.href=url;link.download=`sunbooks-backup-${new Date().toISOString().slice(0,10)}.json`;link.click();URL.revokeObjectURL(url)}
   async function importFile(file?:File){if(!file)return;const data=JSON.parse(await file.text());if(Array.isArray(data.books))await onImport(data.books)}
   async function createShelf(){const name=shelfName.trim();if(!name)return;await onCreateShelf(name);setShelfName("")}
@@ -21,7 +21,7 @@ export function SettingsPage({theme,setTheme,user,books,shelves,installMode,onIn
     <div className="settings-card data-card"><h2>Data</h2><p>{t("exportHelp")}</p><button onClick={exportData}><Download/>{t("exportData")}</button><p>{t("importHelp")}</p><button onClick={()=>fileRef.current?.click()}><Upload/>{t("importData")}</button><input ref={fileRef} hidden type="file" accept="application/json" onChange={event=>importFile(event.target.files?.[0])}/></div>
     <div className="settings-card account"><h2>{t("account")}</h2><p>{user.email}</p><span>{t("googleAccount")}</span></div>
     <div className="settings-card danger-zone"><h2>{t("deleteData")}</h2><p>{t("deleteDataHelp")}</p><button onClick={()=>setConfirm("library")}><Trash2/>{t("deleteData")}</button><h2>{t("deleteAccount")}</h2><p>{t("deleteAccountHelp")}</p><button onClick={()=>setConfirm("account")}><Trash2/>{t("deleteAccount")}</button></div>
-    {isAdmin&&<div className="settings-card admin-card"><Users/><div><h2>{t("administrators")}</h2><p>{t("registeredUsers")}</p><strong>{userCount===null?"…":userCount.toLocaleString()}</strong></div></div>}
+    {isAdmin&&<div className="settings-card admin-card"><Users/><div><h2>{t("administrators")}</h2><div className="admin-numbers"><span><small>{t("registeredUsers")}</small><strong>{userCount===null?"…":userCount.toLocaleString()}</strong></span><span><small>{t("totalBooks")}</small><strong>{totalBookCount===null?"…":totalBookCount.toLocaleString()}</strong></span></div><h3>{t("adminUsage")}</h3>{(()=>{const estimatedReads=Math.max(totalBookCount||0,(userCount||0)*20);const used=Math.min(100,Math.round(estimatedReads/500));return <><div className="quota-meter"><i style={{width:`${used}%`}}/></div><p>{used}% {t("estimatedUsage")} · {100-used}% {t("freeRemaining")}</p><small>{estimatedReads.toLocaleString()} / 50 000 {t("readsToday")}</small></>})()}</div></div>}
     {confirm&&<div className="inline-confirm"><strong>{confirm==="library"?t("deleteLibraryConfirm"):t("deleteAccountConfirm")}</strong><p>{t("deleteLibraryWarning")}</p><div><button onClick={()=>setConfirm(null)}>{t("cancel")}</button><button className="danger" onClick={async()=>{if(confirm==="library")await onDeleteLibrary();else await onDeleteAccount();setConfirm(null)}}>{t("confirmDelete")}</button></div></div>}
   </section>;
 }
