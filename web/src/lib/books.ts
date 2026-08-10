@@ -6,6 +6,27 @@ type OpenLibraryBook = {
   subject?: string[]; language?: string[]; series?: string[];
 };
 
+export function parseAmazonBookLink(value: string): { asin: string; searchTerm: string } | null {
+  let url: URL;
+  try { url = new URL(value.trim()); } catch { return null; }
+  if (!/(^|\.)(amazon\.[a-z.]+|amzn\.(to|eu))$/i.test(url.hostname)) return null;
+
+  const asin = url.pathname.match(/\/(?:dp|gp\/product|gp\/aw\/d)\/([A-Z0-9]{10})(?:[/?]|$)/i)?.[1]
+    || url.searchParams.get("asin")?.match(/^[A-Z0-9]{10}$/i)?.[0];
+  if (!asin) return null;
+
+  const parts = url.pathname.split("/").filter(Boolean);
+  const marker = parts.findIndex((part, index) => part.toLowerCase() === "dp" || (part.toLowerCase() === "gp" && parts[index + 1]?.toLowerCase() === "product"));
+  const slug = marker > 0 ? parts[marker - 1] : "";
+  const title = decodeURIComponent(slug)
+    .replace(/[-_]+/g, " ")
+    .replace(/\b(?:kindle|ebook|paperback|hardcover|audible|edition)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return { asin: asin.toUpperCase(), searchTerm: title.length >= 3 ? title : asin.toUpperCase() };
+}
+
 export function normalizeBook(raw: OpenLibraryBook): Book {
   const isbn = raw.isbn?.[0];
   return {
@@ -23,8 +44,10 @@ export function normalizeBook(raw: OpenLibraryBook): Book {
 }
 
 export async function findBooks(term: string, page: number) {
+  const amazon = parseAmazonBookLink(term);
+  const searchTerm = amazon?.searchTerm || term;
   const fields = "key,title,author_name,first_publish_year,cover_i,isbn,number_of_pages_median,subject,language,series";
-  const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(term)}&page=${page}&limit=20&fields=${fields}`);
+  const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(searchTerm)}&page=${page}&limit=20&fields=${fields}`);
   if (!response.ok) throw new Error("Book search failed");
   const data = await response.json();
   return { books: (data.docs || []).map(normalizeBook), total: data.numFound || 0 } as { books: Book[]; total: number };
