@@ -47,6 +47,22 @@ export async function findBooks(term: string, page: number) {
   const amazon = parseAmazonBookLink(term);
   const searchTerm = amazon?.searchTerm || term;
   const fields = "key,title,author_name,first_publish_year,cover_i,isbn,number_of_pages_median,subject,language,series";
+  if (amazon && page === 1) {
+    const words = searchTerm.split(/\s+/);
+    const bookNumberIndex = words.findIndex((word, index) => /^book$/i.test(word) && /^\d+$/i.test(words[index + 1] || ""));
+    const titleWords = bookNumberIndex > 0 ? words.slice(0, bookNumberIndex) : words;
+    const candidates = Array.from({ length: titleWords.length }, (_, index) => titleWords.slice(0, titleWords.length - index).join(" "));
+    const normalizeTitle = (value: string) => value.toLocaleLowerCase().replace(/^(?:the|a|an)\s+/, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+
+    for (const candidate of candidates) {
+      if (candidate.length < 3) continue;
+      const exactResponse = await fetch(`https://openlibrary.org/search.json?title=${encodeURIComponent(candidate)}&page=1&limit=20&fields=${fields}`);
+      if (!exactResponse.ok) continue;
+      const exactData = await exactResponse.json();
+      const exactBooks = (exactData.docs || []).map(normalizeBook).filter((book: Book) => normalizeTitle(book.title) === normalizeTitle(candidate));
+      if (exactBooks.length) return { books: exactBooks, total: exactBooks.length } as { books: Book[]; total: number };
+    }
+  }
   const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(searchTerm)}&page=${page}&limit=20&fields=${fields}`);
   if (!response.ok) throw new Error("Book search failed");
   const data = await response.json();
