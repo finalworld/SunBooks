@@ -38,7 +38,7 @@ const I18nContext = createContext<I18nValue | null>(null);
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [language, updateLanguage] = useState<Language>(() => (localStorage.getItem("sunbooks-language") as Language) || "sv");
   const setLanguage = (next: Language) => { updateLanguage(next); localStorage.setItem("sunbooks-language", next); document.documentElement.lang = next; };
-  const value = useMemo(() => ({ language, setLanguage, t: (key: Key) => (language === "sv" ? sv : en)[key] }), [language]);
+  const value = useMemo(() => ({ language, setLanguage, t: (key: Key) => (language === "sv" ? sv : en)[key].replaceAll("SunBooks", "SunReads") }), [language]);
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 

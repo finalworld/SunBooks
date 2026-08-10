@@ -52,7 +52,7 @@ export default function Home() {
 
   useEffect(() => onAuthStateChanged(auth, current => { setUser(current); setAuthReady(true); if(current)void setDoc(doc(db,"profiles",current.uid),{email:current.email?.toLowerCase()||"",displayName:current.displayName||"",lastSeenAt:serverTimestamp()},{merge:true}).then(async()=>{if(current.email&&ADMIN_EMAILS.includes(current.email.toLowerCase())){const result=await getCountFromServer(collection(db,"profiles"));setUserCount(result.data().count)}}); }), []);
   useEffect(() => {
-    getRedirectResult(auth).catch(() => setAuthError("Google-inloggningen kunde inte slutföras. Försök igen eller öppna SunBooks direkt i Safari."));
+    getRedirectResult(auth).catch(() => setAuthError("Google-inloggningen kunde inte slutföras. Försök igen eller öppna SunReads direkt i Safari."));
   }, []);
   useEffect(() => { document.documentElement.dataset.theme = theme; localStorage.setItem("sunbooks-theme", theme); }, [theme]);
   useEffect(() => {
