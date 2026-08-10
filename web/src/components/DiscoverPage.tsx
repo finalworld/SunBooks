@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { BookOpen, Compass, Eye, EyeOff, Star } from "lucide-react";
+import { BookOpen, Compass, Star } from "lucide-react";
 import type { Book } from "../types";
 import { useI18n } from "../i18n";
 
@@ -11,7 +11,6 @@ export function DiscoverPage({entries,loading,onSelect}:Props){
   const[genre,setGenre]=useState("all");
   const[scope,setScope]=useState("all");
   const[minRating,setMinRating]=useState(0);
-  const[showSpoilers,setShowSpoilers]=useState(()=>localStorage.getItem("sunbooks-spoilers")==="true");
   const genres=useMemo(()=>Array.from(new Set(entries.flatMap(book=>book.genres||[]))).sort().slice(0,80),[entries]);
   const books=useMemo(()=>{
     const map=new Map<string,{book:Book;count:number;ratings:number[]}>();
@@ -35,7 +34,6 @@ export function DiscoverPage({entries,loading,onSelect}:Props){
       return br-ar||b.count-a.count;
     });
   },[entries,term,genre,scope,minRating]);
-  function spoilers(next:boolean){setShowSpoilers(next);localStorage.setItem("sunbooks-spoilers",String(next))}
   return <section className="content discover-page">
     <div className="content-heading"><div><p>{t("discover")}</p><h1>{t("discoverTitle")}</h1></div><Compass/></div>
     <p className="discover-intro">{t("discoverIntro")}</p>
@@ -45,7 +43,7 @@ export function DiscoverPage({entries,loading,onSelect}:Props){
       <select value={genre} onChange={e=>setGenre(e.target.value)}><option value="all">{t("allGenres")}</option>{genres.map(value=><option key={value}>{value}</option>)}</select>
       <select value={minRating} onChange={e=>setMinRating(Number(e.target.value))}><option value="0">{language==="sv"?"Alla betyg":"All ratings"}</option>{[1,2,3,4,4.5,5].map(value=><option value={value} key={value}>{value}+ ★</option>)}</select>
     </div>
-    <div className="section-title-row"><h2>{t("highestRated")}</h2><button onClick={()=>spoilers(!showSpoilers)}>{showSpoilers?<EyeOff/>:<Eye/>}{showSpoilers?t("hideSpoilers"):t("showSpoilers")}</button></div>
-    {loading?<div className="loader"/>:books.length===0?<div className="empty"><BookOpen/><h2>{t("noCommunity")}</h2></div>:<div className="discover-grid">{books.slice(0,20).map(({book,count,ratings})=>{const average=ratings.length?ratings.reduce((a,b)=>a+b,0)/ratings.length:null;const reviews=entries.filter(item=>item.id===book.id&&item.reviewPublic&&item.review);return <article className="discover-card" key={book.id}><button className="discover-book" onClick={()=>onSelect(book)}>{book.cover?<img src={book.cover} alt=""/>:<BookOpen/>}<span><strong>{book.title}</strong><small>{book.authors.join(", ")}</small>{average!==null&&<b><Star fill="currentColor"/>{average.toFixed(2)} · {ratings.length}</b>}<em>{count} {t("results")}</em></span></button>{reviews.map((review,index)=><div className="public-review" key={index}>{review.reviewSpoiler&&!showSpoilers?<div className="spoiler-mask"><strong>{t("spoilerWarning")}</strong><button onClick={()=>spoilers(true)}>{t("showAnyway")}</button></div>:<><b>{typeof review.rating==="number"?`${review.rating.toFixed(2)} ★`:""}</b><p>{review.review}</p></>}</div>)}</article>})}</div>}
+    <div className="section-title-row"><h2>{t("highestRated")}</h2></div>
+    {loading?<div className="loader"/>:books.length===0?<div className="empty"><BookOpen/><h2>{t("noCommunity")}</h2></div>:<div className="discover-grid">{books.slice(0,20).map(({book,count,ratings})=>{const average=ratings.length?ratings.reduce((a,b)=>a+b,0)/ratings.length:null;const reviews=entries.filter(item=>item.id===book.id&&item.reviewPublic&&item.review);return <article className="discover-card" key={book.id}><button className="discover-book" onClick={()=>onSelect(book)}>{book.cover?<img src={book.cover} alt=""/>:<BookOpen/>}<span><strong>{book.title}</strong><small>{book.authors.join(", ")}</small>{average!==null&&<b><Star fill="currentColor"/>{average.toFixed(2)} · {ratings.length}</b>}<em>{count} {t("results")}</em><em>{reviews.length} {t("reviewsTab").toLocaleLowerCase()}</em></span></button></article>})}</div>}
   </section>
 }
