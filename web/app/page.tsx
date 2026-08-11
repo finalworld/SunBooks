@@ -49,6 +49,7 @@ export default function Home() {
   const [theme, setTheme] = useState<Theme>(() => { const saved=localStorage.getItem("sunbooks-theme") as Theme|null; return saved&&saved!==("system" as Theme)?saved:"light"; });
   const [easterEgg,setEasterEgg]=useState(false);
   const logoTaps=useRef<number[]>([]);
+  const lastSearchTerm=useRef("");
 
   useEffect(() => onAuthStateChanged(auth, current => { setUser(current); setAuthReady(true); if(current)void setDoc(doc(db,"profiles",current.uid),{email:current.email?.toLowerCase()||"",displayName:current.displayName||"",lastSeenAt:serverTimestamp()},{merge:true}).then(async()=>{if(current.email&&ADMIN_EMAILS.includes(current.email.toLowerCase())){const result=await getCountFromServer(collection(db,"profiles"));setUserCount(result.data().count)}}); }), []);
   useEffect(() => {
@@ -62,6 +63,15 @@ export default function Home() {
       .catch(() => setError("Kunde inte läsa ditt bibliotek."));
   }, [user]);
   useEffect(()=>{const handler=(event:Event)=>{event.preventDefault();setInstallPrompt(event as InstallPromptEvent)};const installedHandler=()=>{setInstalled(true);setInstallPrompt(null)};window.addEventListener("beforeinstallprompt",handler);window.addEventListener("appinstalled",installedHandler);return()=>{window.removeEventListener("beforeinstallprompt",handler);window.removeEventListener("appinstalled",installedHandler)}},[]);
+  useEffect(()=>{
+    const term=query.trim();
+    if(term.length<=3){lastSearchTerm.current="";setResults([]);setTotal(0);setError("");return}
+    if(term===lastSearchTerm.current)return;
+    const timer=window.setTimeout(()=>void searchBooks(1,term),450);
+    return()=>window.clearTimeout(timer);
+    // searchBooks is a function declaration and always receives the forced current term.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[query]);
 
   const isAdmin=Boolean(user?.email&&ADMIN_EMAILS.includes(user.email.toLowerCase()));
   useEffect(()=>{if(!isAdmin){setUserCount(null);setTotalBookCount(null);return}Promise.all([getCountFromServer(collection(db,"profiles")),getCountFromServer(collectionGroup(db,"books"))]).then(([users,books])=>{setUserCount(users.data().count);setTotalBookCount(books.data().count)}).catch(()=>{setUserCount(null);setTotalBookCount(null)})},[isAdmin]);
@@ -81,6 +91,7 @@ export default function Home() {
   async function searchBooks(nextPage = 1, forced?: string) {
     const term = (forced ?? query).trim();
     if (!term) return;
+    lastSearchTerm.current=term;
     window.scrollTo({ top:0, behavior:"smooth" });
     setLoading(true); setError(""); setResults([]); setPage(nextPage); setView("home");
     try {
