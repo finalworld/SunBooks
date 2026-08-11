@@ -52,8 +52,8 @@ export default function Home() {
 
   useEffect(() => onAuthStateChanged(auth, current => { setUser(current); setAuthReady(true); if(current)void setDoc(doc(db,"profiles",current.uid),{email:current.email?.toLowerCase()||"",displayName:current.displayName||"",lastSeenAt:serverTimestamp()},{merge:true}).then(async()=>{if(current.email&&ADMIN_EMAILS.includes(current.email.toLowerCase())){const result=await getCountFromServer(collection(db,"profiles"));setUserCount(result.data().count)}}); }), []);
   useEffect(() => {
-    getRedirectResult(auth).catch(() => setAuthError("Google-inloggningen kunde inte slutföras. Försök igen eller öppna SunReads direkt i Safari."));
-  }, []);
+    getRedirectResult(auth).catch(() => setAuthError(t("loginRetry")));
+  }, [t]);
   useEffect(() => { document.documentElement.dataset.theme = theme; localStorage.setItem("sunbooks-theme", theme); }, [theme]);
   useEffect(() => {
     if (!user) { setLibrary([]);setCustomShelves([]); return; }
@@ -131,7 +131,19 @@ export default function Home() {
       if (isIOS) await signInWithRedirect(auth, googleProvider);
       else await signInWithPopup(auth, googleProvider);
     }
-    catch { setAuthError("Inloggningen avbröts eller kunde inte öppnas. Försök igen i Safari om du använder en inbyggd webbläsare."); }
+    catch (error) {
+      const code = (error as {code?:string})?.code || "";
+      if (code === "auth/popup-blocked") {
+        try { await signInWithRedirect(auth, googleProvider); }
+        catch { setAuthError(t(isIOS ? "loginSafari" : "loginRetry")); }
+      } else if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
+        setAuthError(t("loginCancelled"));
+      } else if (code === "auth/network-request-failed") {
+        setAuthError(t("loginNetwork"));
+      } else {
+        setAuthError(t(isIOS ? "loginSafari" : "loginRetry"));
+      }
+    }
   }
 
   const closeScanner = useCallback(() => setScanMode(null), []);
