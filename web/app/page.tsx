@@ -81,6 +81,7 @@ export default function Home() {
   async function searchBooks(nextPage = 1, forced?: string) {
     const term = (forced ?? query).trim();
     if (!term) return;
+    window.scrollTo({ top:0, behavior:"smooth" });
     setLoading(true); setError(""); setResults([]); setPage(nextPage); setView("home");
     try {
       const found = await findBooks(term, nextPage);
