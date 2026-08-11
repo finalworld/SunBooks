@@ -27,6 +27,33 @@ export function parseAmazonBookLink(value: string): { asin: string; searchTerm: 
   return { asin: asin.toUpperCase(), searchTerm: title.length >= 3 ? title : asin.toUpperCase() };
 }
 
+function extractAsin(value: string) {
+  return parseAmazonBookLink(value)?.asin || value.trim().match(/^(?:B0[A-Z0-9]{8}|[A-Z0-9]{10})$/i)?.[0]?.toUpperCase();
+}
+
+function displayAmazonAuthor(value: string) {
+  const parts=value.split(",").map(part=>part.trim()).filter(Boolean);
+  return parts.length===2 ? `${parts[1]} ${parts[0]}` : value.trim();
+}
+
+async function resolveAmazonBook(asin:string):Promise<Book|null>{
+  try{
+    const response=await fetch(`https://r.jina.ai/https://www.amazon.com/dp/${encodeURIComponent(asin)}`);
+    if(!response.ok)return null;
+    const markdown=await response.text();
+    const amazonTitle=markdown.match(/^Title:\s*Amazon\.[^:]+:\s*(.+)$/im)?.[1]?.trim();
+    if(!amazonTitle)return null;
+    const parsed=amazonTitle.match(/^(.*?)\s+(?:eBook|Kindle Edition)\s*:\s*(.+?)\s*:\s*Kindle Store\s*$/i);
+    if(!parsed)return null;
+    const title=parsed[1].trim();
+    const author=displayAmazonAuthor(parsed[2]);
+    const imageUrls=Array.from(markdown.matchAll(/https:\/\/m\.media-amazon\.com\/images\/I\/[^)\s]+?\.(?:jpe?g|png)/gi),match=>match[0]);
+    const rawCover=imageUrls.find(url=>/_SY\d+_/i.test(url))||imageUrls[0];
+    const cover=rawCover?.replace(/\._[^.]+(?=\.(?:jpe?g|png)$)/i,"");
+    return {id:`amazon-${asin}`,title,authors:[author],cover,asin,languages:["eng"]};
+  }catch{return null}
+}
+
 export function normalizeBook(raw: OpenLibraryBook): Book {
   const isbn = raw.isbn?.[0];
   return {
@@ -45,8 +72,22 @@ export function normalizeBook(raw: OpenLibraryBook): Book {
 
 export async function findBooks(term: string, page: number) {
   const amazon = parseAmazonBookLink(term);
+  const asin=extractAsin(term);
   const searchTerm = amazon?.searchTerm || term;
   const fields = "key,title,author_name,first_publish_year,cover_i,isbn,number_of_pages_median,subject,language,series";
+  if(asin&&page===1){
+    const amazonBook=await resolveAmazonBook(asin);
+    if(amazonBook){
+      const exactResponse=await fetch(`https://openlibrary.org/search.json?title=${encodeURIComponent(amazonBook.title)}&author=${encodeURIComponent(amazonBook.authors[0])}&page=1&limit=20&fields=${fields}`);
+      if(exactResponse.ok){
+        const exactData=await exactResponse.json();
+        const normalizedTitle=amazonBook.title.toLocaleLowerCase().replace(/^(?:the|a|an)\s+/,"").replace(/[^\p{L}\p{N}]+/gu," ").trim();
+        const matches=(exactData.docs||[]).map(normalizeBook).filter((book:Book)=>book.title.toLocaleLowerCase().replace(/^(?:the|a|an)\s+/,"").replace(/[^\p{L}\p{N}]+/gu," ").trim()===normalizedTitle).map((book:Book)=>({...book,asin}));
+        if(matches.length)return{books:matches,total:matches.length} as {books:Book[];total:number};
+      }
+      return{books:[amazonBook],total:1};
+    }
+  }
   if (amazon && page === 1) {
     const words = searchTerm.split(/\s+/);
     const bookNumberIndex = words.findIndex((word, index) => /^book$/i.test(word) && /^\d+$/i.test(words[index + 1] || ""));

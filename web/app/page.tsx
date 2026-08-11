@@ -113,7 +113,7 @@ export default function Home() {
     if ("formats" in change || "copies" in change) updated.owned = Boolean(updated.formats?.length || updated.copies?.length);
     const clean = JSON.parse(JSON.stringify(updated)) as Book;
     await setDoc(doc(db, "users", user.uid, "books", book.id), clean);
-    const publicEntry:Book={id:clean.id,title:clean.title,authors:clean.authors,cover:clean.cover,isbn:clean.isbn,year:clean.year,pages:clean.pages,genres:clean.genres,languages:clean.languages,owned:clean.owned,readingStatus:clean.readingStatus,rating:clean.rating,reviewPublic:clean.reviewPublic,reviewSpoiler:clean.reviewSpoiler,review:clean.reviewPublic?clean.review:undefined,updatedAt:clean.updatedAt};
+    const publicEntry:Book={id:clean.id,title:clean.title,authors:clean.authors,cover:clean.cover,isbn:clean.isbn,asin:clean.asin,year:clean.year,pages:clean.pages,genres:clean.genres,languages:clean.languages,owned:clean.owned,readingStatus:clean.readingStatus,rating:clean.rating,reviewPublic:clean.reviewPublic,reviewSpoiler:clean.reviewSpoiler,review:clean.reviewPublic?clean.review:undefined,updatedAt:clean.updatedAt};
     await setDoc(doc(db,"communityBooks",clean.id,"contributions",user.uid),JSON.parse(JSON.stringify(publicEntry)));
     setLibrary(current => [clean, ...current.filter(item => item.id !== book.id)]);
     setSelected(current => current?.id === book.id ? clean : current);

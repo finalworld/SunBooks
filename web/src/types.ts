@@ -35,6 +35,7 @@ export type Book = {
   authors: string[];
   cover?: string;
   isbn?: string;
+  asin?: string;
   year?: number;
   pages?: number;
   genres?: string[];
