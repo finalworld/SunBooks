@@ -50,6 +50,7 @@ export default function Home() {
   const [easterEgg,setEasterEgg]=useState(false);
   const logoTaps=useRef<number[]>([]);
   const lastSearchTerm=useRef("");
+  const searchRequest=useRef(0);
 
   useEffect(() => onAuthStateChanged(auth, current => { setUser(current); setAuthReady(true); if(current)void setDoc(doc(db,"profiles",current.uid),{email:current.email?.toLowerCase()||"",displayName:current.displayName||"",lastSeenAt:serverTimestamp()},{merge:true}).then(async()=>{if(current.email&&ADMIN_EMAILS.includes(current.email.toLowerCase())){const result=await getCountFromServer(collection(db,"profiles"));setUserCount(result.data().count)}}); }), []);
   useEffect(() => {
@@ -65,7 +66,7 @@ export default function Home() {
   useEffect(()=>{const handler=(event:Event)=>{event.preventDefault();setInstallPrompt(event as InstallPromptEvent)};const installedHandler=()=>{setInstalled(true);setInstallPrompt(null)};window.addEventListener("beforeinstallprompt",handler);window.addEventListener("appinstalled",installedHandler);return()=>{window.removeEventListener("beforeinstallprompt",handler);window.removeEventListener("appinstalled",installedHandler)}},[]);
   useEffect(()=>{
     const term=query.trim();
-    if(term.length<=3){lastSearchTerm.current="";setResults([]);setTotal(0);setError("");return}
+    if(term.length<=3){searchRequest.current+=1;lastSearchTerm.current="";setResults([]);setTotal(0);setError("");setLoading(false);return}
     if(term===lastSearchTerm.current)return;
     const timer=window.setTimeout(()=>void searchBooks(1,term),450);
     return()=>window.clearTimeout(timer);
@@ -91,15 +92,17 @@ export default function Home() {
   async function searchBooks(nextPage = 1, forced?: string) {
     const term = (forced ?? query).trim();
     if (!term) return;
+    const requestId=++searchRequest.current;
     lastSearchTerm.current=term;
     window.scrollTo({ top:0, behavior:"smooth" });
     setLoading(true); setError(""); setResults([]); setPage(nextPage); setView("home");
     try {
       const found = await findBooks(term, nextPage);
+      if(requestId!==searchRequest.current)return;
       setResults(found.books); setTotal(found.total);
       if (!found.books.length) setError("Inga böcker hittades. Prova titel, författare eller ISBN.");
-    } catch { setError("Kunde inte hämta böcker just nu. Försök igen om en liten stund."); }
-    finally { setLoading(false); }
+    } catch { if(requestId===searchRequest.current)setError("Kunde inte hämta böcker just nu. Försök igen om en liten stund."); }
+    finally { if(requestId===searchRequest.current)setLoading(false); }
   }
 
   async function patchBook(book: Book, change: Partial<Book>) {
